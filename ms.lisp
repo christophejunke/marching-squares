@@ -281,7 +281,7 @@
   ;; helps with reloading code while the game runs
   (check-type function symbol)
   (catch 'sdl2-block
-    (sdl2:with-everything (:window (*window* :w 800 :h 800
+    (sdl2:with-everything (:window (*window* :w (* *size* 32) :h 800
                                              :title "Marching squares"
                                              :flags '(:shown :opengl))
                            :gl *gl*)
@@ -708,7 +708,7 @@
                 "            ###                 "  
                 "                                "
                 "                                "
-                "       ############             "
+                "###################             "
                 "       #      ##B##  b          "
                 "       #                        "
                 "       #                 #      "
@@ -720,7 +720,7 @@
                 "          ###  e#  #            "
                 "                   E            "
                 "               #      ######    "
-                "                    #      # #  "
+                "                    #      # ###"
                 "              ###  ##      ###  "
                 "                    ##          "
                 "               ##               "
