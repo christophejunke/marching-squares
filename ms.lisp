@@ -555,6 +555,13 @@
     (funcall (action spawn))))
 
 (defstruct wish intent square accept-fn)
+(defstruct neighbours
+  (left nil)
+  (up-left nil)
+  (up nil)
+  (up-right nil)
+  (right nil)
+  (down nil))
 
 (defun pick-candidate (candidates)
   (cond
@@ -612,13 +619,6 @@
 
 (defmethod update ((square blocked-square)))
 
-(defstruct neighbours
-  (left nil)
-  (up-left nil)
-  (up nil)
-  (up-right nil)
-  (right nil)
-  (down nil))
 
 (defgeneric animation-step (object)
   (:method (_)))
