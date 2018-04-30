@@ -166,7 +166,7 @@
     ((:restart :lose :win) (trigger-event *game* item))
     (:inverter
      (make-instance 'inverter
-                    :action (lambda () (invert *event*))))    
+                    :action (lambda () (invert *event*))))
     (:start (make-instance 'spawn
                            :action (lambda ()
                                      (activate-square level row col))))
@@ -425,7 +425,7 @@
       (gl:rotate angle 0 0 1)
       (gl:color 0 0 0 0)
       (gl:rect 0 3 s (- s))
-      (gl:color 0.2 0.2 0.2 0)      
+      (gl:color 0.2 0.2 0.2 0)
       (gl:rect 1 -1 (- s 1) (- (- s 1)))
       (gl:color 0.8 0.8 0.8 0)
       (gl:rect 3 -3 (- s 3) (- (- s 3))))))
@@ -439,7 +439,7 @@
       (gl:rotate angle 0 0 1)
       (gl:color 0 0 0 0)
       (gl:rect 0 0 s (- s))
-      (gl:color 0.2 0.2 0.2 0)      
+      (gl:color 0.2 0.2 0.2 0)
       (gl:rect 1 -1 (- s 1) (- (- s 1)))
       (gl:color 1. 1. 1. 0)
       (gl:rect 3 -3 (- s 3) (- (- s 3))))))
@@ -453,7 +453,7 @@
       (gl:rotate angle 0 0 1)
       (gl:color 0 0 0 0)
       (gl:rect 0 0 s (- s))
-      (gl:color 0.2 0.2 0.2 0)      
+      (gl:color 0.2 0.2 0.2 0)
       (gl:rect 1 -1 (- s 1) (- (- s 1)))
       (gl:color 0.9 0.9 0.4 0)
       (gl:rect 4 -4 (- s 4) (- (- s 4))))))
@@ -474,13 +474,13 @@
 
 (defmethod microstep ((square square) ratio)
   (case (state square)
-    (:falling 
+    (:falling
      (setf (angle square) 0)
      (setf (offset-y square) (* ratio *size*)))
     (:staying)
     (:lefting
      (setf (angle square) (* ratio -90)))
-     
+
     (:righting
      (setf (angle square) (+ -90 (* ratio 90)))
      (setf (offset-x square) *size*)
@@ -703,9 +703,9 @@
   (make-level #("                V               "
                 "                                "
                 "                                "
-                "                                "     
+                "                                "
                 "            # #######-#####     "
-                "            ###                 "  
+                "            ###                 "
                 "                                "
                 "                                "
                 "###################             "
@@ -713,7 +713,7 @@
                 "       #                        "
                 "       #                 #      "
                 "       ##### ####=###=####      "
-                "           ###                  "  
+                "           ###                  "
                 "                     8          "
                 "                                "
                 "          # ###~########~#      "
@@ -739,8 +739,8 @@
                 "       #  #   f                 "
                 "       ####                     "
                 "                                "
-                "                                "                
-                "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"                  
+                "                                "
+                "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
                 )
               (list (cons #\b `(:trigger :release x))
                     (cons #\B `(:blocked-square x))
@@ -765,34 +765,81 @@
                 "              V                 "
                 "                                "
                 "           ##-#######-####      "
-                "           ## ####### ####      "  
+                "           ## ####### ####      "
                 "      8###################8###  "
                 "       ################### ###  "
                 "       ################      #  "
                 "       #                     #  "
                 "       # #####################  "
                 "                                "
-                "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"                  
+                "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
                 )
-              (list (cons #\b `(:trigger :release x))
-                    (cons #\B `(:blocked-square x))
-                    (cons #\e `(:trigger :release y))
-                    (cons #\E `(:blocked-square y))
-                    (cons #\f `(:trigger :release z))
-                    (cons #\F `(:blocked-square z))
-                    (cons #\X `(:trigger :lose))
-                    (cons #\@ `(:trigger :win))
-                    (cons #\8 :inverter)
-                    (cons #\V :start)
-                    (cons #\- '(:door door-1)))))
+              '((#\b . '(:trigger :release x))
+                (#\B . '(:blocked-square x))
+                (#\e . '(:trigger :release y))
+                (#\E . '(:blocked-square y))
+                (#\f . '(:trigger :release z))
+                (#\F . '(:blocked-square z))
+                (#\X . '(:trigger :lose))
+                (#\@ . '(:trigger :win))
+                (#\8 . :inverter)
+                (#\V . :start)
+                (#\- . '(:door door-1)))))
+
+(defparameter *level-2*
+  (make-level #("               V                "
+                "                        V       "
+                "                      V         "
+                "              V                 "
+                "                                "
+                "    ######=## ############   #  "
+                "    ###### ## ############   #  "
+                "    ###### ## ############   #  "
+                "    ###### ##=################  "
+                "    ###### ##     #########B##  "
+                "    ###### ##     ######        "
+                "    ###E##    ###b#             "
+                "      # ##    #                 "
+                "      # ##### #  8              "
+                "      #     #-#-##              "
+                "      #        e                "
+                "      #                    # #  "
+                "      #^###^# ####^####^#### #  "
+                "            # #            # #  "
+                "            #^#   8        # #  "
+                "                           ###  "
+                "                                "
+                "                                "
+                "                                "
+                "  #####~###~~~####~####~######  "
+                "  #                          #  "
+                "  #    @                     #  "
+                "  ############################  "                      
+                "  ############################  "
+                "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                )
+              '((#\b . (:trigger :release x))
+                (#\B . (:blocked-square x))
+                (#\e . (:trigger :release y))
+                (#\E . (:blocked-square y))
+                (#\f . (:trigger :release z))
+                (#\F . (:blocked-square z))
+                (#\X . (:trigger :lose))
+                (#\@ . (:trigger :win))
+                (#\8 . :inverter)
+                (#\V . :start)
+                (#\- . (:door door-1))
+                (#\= . (:door door-2))
+                (#\^ . (:door door-3))
+                (#\~ . (:door door-4)))))
 
 (setf (level-next *level-1*)
       *level-2*
-      (game-level *game*) *level-1*)
+      (game-level *game*) *level-2*)
 
 (defun start ()
   (setf (game-level *game*) *level-1*)
-  (trigger-event *game* :restart)  
+  (trigger-event *game* :restart)
   (call-with-sdl2-context 'test))
 
 (start)
