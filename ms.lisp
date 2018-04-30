@@ -381,7 +381,7 @@
                   ;; (gl:flush)
                   ;; (sdl2:gl-swap-window *window*)
                   (microstep *game* (/ s steps))
-                  (sleep 0.01))
+                  (sleep 0.005))
              (conclude-step *game*))
       (:quit () :quit))))
 
