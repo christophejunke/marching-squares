@@ -8,3 +8,5 @@ Use left and right arrows to move. Escape key restarts current level.
 
 [[file:screenshot.png][Screenshot]]
 
+Video: https://youtu.be/sFqbSptRe6s (Spoiler!)
+
