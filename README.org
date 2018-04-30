@@ -10,6 +10,8 @@ Install Quicklisp as explained here: https://www.quicklisp.org/beta/.
 
 Use left and right arrows to move. Escape key restarts current level.
 
+Depending on your screen, you might have to adjust =mc::*size*=.
+
 #+html: <p align="center"><img src="screenshot.png" /></p>
 
 Video: https://youtu.be/sFqbSptRe6s (Spoiler!)
