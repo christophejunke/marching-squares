@@ -1,12 +1,16 @@
 Little game written during two days for [[https://itch.io/jam/lisp-game-jam-2018/][Lisp Game Jam 2018]] (not submitted).
 
-    : (ql:quickload :marching-squares)
+Tested with SBCL:
 
-Assumes Quicklisp is installed, needs =trivia=, =sdl2= and =cl-opengl=.
+    : apt install sbcl libsdl2-dev
+
+Install Quicklisp as explained here: https://www.quicklisp.org/beta/.
+
+    : (ql:quickload :marching-squares)
 
 Use left and right arrows to move. Escape key restarts current level.
 
-[[file:screenshot.png][Screenshot]]
+file:screenshot.png
 
 Video: https://youtu.be/sFqbSptRe6s (Spoiler!)
 
