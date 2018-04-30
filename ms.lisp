@@ -1,7 +1,7 @@
-(ql:quickload '(:sdl2 :trivia :cl-opengl))
-
 (defpackage ms (:use :cl))
 (in-package ms)
+
+(defparameter *size* 15)
 
 (defclass has-update-category ()
   ((update-category
@@ -287,9 +287,9 @@
                            :gl *gl*)
       (sdl2:with-renderer (*renderer* *window*)
         (sdl2:gl-make-current *window* *gl*)
-        (gl:shade-model :smooth)
-        (gl:enable :blend)
-        (gl:hint :perspective-correction-hint :nicest)
+        ;; (gl:shade-model :smooth)
+        ;; (gl:enable :blend)
+        ;; (gl:hint :perspective-correction-hint :nicest)
         (handler-bind ((restart-function #'again))
           (tagbody
            start
@@ -361,7 +361,8 @@
         (next-direction))
     (sdl2:with-event-loop (:method :poll)
       (:keydown (:keysym keysym)
-                (let* ((binding (keybind (sdl2:scancode-value keysym) *game*))
+                (let* ((binding (keybind (sdl2:scancode-value keysym)
+                                         *game*))
                        (command (typecase binding
                                   (function (funcall binding))
                                   (symbol binding))))
@@ -377,8 +378,8 @@
              (loop
                for s below steps
                do (display *game*)
-                  (gl:flush)
-                  (sdl2:gl-swap-window *window*)
+                  ;; (gl:flush)
+                  ;; (sdl2:gl-swap-window *window*)
                   (microstep *game* (/ s steps))
                   (sleep 0.01))
              (conclude-step *game*))
@@ -502,8 +503,6 @@
         (draw x (round (+ x ratio)))
         (draw (round (+ x s (- ratio)))
               (+ x s))))))
-
-(defparameter *size* 20)
 
 (defmethod display ((level level))
   (let ((array (level-array level))
