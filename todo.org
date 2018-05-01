@@ -1,0 +1,4 @@
+* TODO Make all sizes relative to *size*
+* TODO Two packages, with and without opengl
+* TODO mobiles.lisp : define interface for move intents
+* Other [[shell:grep%20-i%20'\(todo\|fixme\)'%20*.lisp][TODOS]]

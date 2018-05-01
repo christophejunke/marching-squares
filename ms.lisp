@@ -1,849 +1,555 @@
-(defpackage ms (:use :cl))
-(in-package ms)
+(defpackage :marching-squares
+  (:use
+   :cl
+   :alexandria)
+  (:import-from :sdl2
+                #:set-render-draw-color
+                #:scancode-key-to-value
+                #:scancode-value
+                #:with-everything
+                #:with-renderer
+                #:with-event-loop
+                #:gl-make-current)
+  (:import-from :trivia
+                #:match))
 
-(defparameter *size* 15)
+(in-package :marching-squares)
 
-(defclass has-update-category ()
-  ((update-category
-    :accessor update-category
-    :initarg :update-category
-    :initform nil)))
-
-(defclass has-position ()
-  ((level :initarg :level :accessor level)
-   (row :initarg :row :accessor row)
-   (col :initarg :col :accessor col)))
-
-(defclass has-direction ()
-  ((direction :initform nil :accessor direction)))
-
-(defclass has-name ()
-  ((name :accessor name :initarg :name)))
-
-(defmacro let1 ((var expr) &body body)
-  `(let ((,var ,expr))
-     (prog1 ,var
-       ,@body)))
-
-(defclass has-level-source ()
-  ((description :accessor level-source-description :initarg :description)
-   (bindings :accessor level-source-bindings :initarg :bindings)))
-
-(defclass has-animation-state ()
-  ((step-function :initform nil :accessor animation-step-function)))
-
-(defclass level (has-level-source)
-  ((array :accessor level-array :initarg :array)
-   (next :accessor level-next :initarg :next)
-   (groups :accessor level-groups :initform (make-hash-table :test #'eq))
-   (categories :accessor level-categories
-               :initform (make-hash-table :test #'eq))))
-
-(defvar *default-bindings*
-  '((#\space . nil)
-    (#\# . :wall)
-    (#\- . :door)))
-
-(defun make-level (lines &optional bindings next
-                   &aux (rows (length lines)))
-  (let* ((array (make-array (list rows 32)))
-         (level (make-instance 'level
-                               :array array
-                               :next next
-                               :description lines
-                               :bindings bindings)))
-    (prog1 level
-      (dotimes (row rows)
-        (dotimes (col 32)
-          (setf (aref array row col)
-                (create level
-                        (aref (aref lines row) col)
-                        :bindings bindings
-                        :row row
-                        :col col)))))))
-
-(defgeneric created (level created)
-  (:method (level object)))
-
-(defgeneric create (level item &key bindings row col)
-  (:method (level (item character) &key bindings row col)
-    (flet ((resolve (alist)
-             (let ((entry (assoc item alist)))
-               (and entry
-                    (create level
-                            (cdr entry)
-                            :bindings bindings
-                            :row row
-                            :col col)))))
-      (or (resolve bindings)
-          (resolve *default-bindings*))))
-  (:method :around (level (item character) &key &allow-other-keys)
-    (let1 (result (call-next-method))
-      (created level result))))
-
-(defgeneric release (level object)
-  (:method ((level level) (name symbol))
-    (map () #'release-element (gethash name (level-groups level)))))
-
-(defun parse-action (level row col form)
-  (declare (ignore row col))
-  (trivia:ematch form
-    ((list :lose) (lambda () (trigger-event *game* :restart)))
-    ((list :win)  (lambda ()
-                    (trigger-event *game* :next-level)))
-    ((list :release name) (lambda () (release level name)))))
-
-(defun register (level object name)
-  (prog1 object
-    (push object (gethash name (level-groups level)))))
-
-(defun make-door (level name row col)
-  (register level
-            (make-instance 'door
-                           :name name
-                           :level level
-                           :row row
-                           :col col)
-            name))
-
-(defmethod created ((level level) (element has-update-category))
-  (let ((category (update-category element)))
-    (when category
-      (pushnew element
-               (gethash category (level-categories level))))))
-
-(defun activate-square (level row col &optional square)
-  (let ((square (or square
-                    (make-instance 'square
-                                   :level level
-                                   :row row
-                                   :col col))))
-    (setf (aref (level-array level) row col) square)
-    (pushnew square (game-squares *game*))))
-
-(defclass door-group ()
-  ((doors :accessor group-doors
-          :initform (make-array 10 :fill-pointer 0 :adjustable t))))
-
-(defclass door (has-update-category has-position has-name)
-  ((state :accessor state :initform :closed)
-   (group :accessor group :initarg :group)
-   (openness :accessor openness :initform 0))
-  (:default-initargs :update-category :door))
-
-(defclass inverter (trigger) ())
-
-(defclass square (has-update-category
-                  has-position
-                  has-direction)
-  ((offset-x :initform 0 :accessor offset-x)
-   (offset-y :initform 0 :accessor offset-y)
-   (angle :initform 0 :accessor angle)
-   (next-position :initform nil :accessor next-position)
-   (state :accessor state :initform nil))
-  (:default-initargs :update-category :square))
-
-(defclass blocked-square (square) ())
-
-(defgeneric release-element (element)
-  (:method ((square blocked-square))
-    (change-class square 'square)
-    (activate-square (level square) (row square) (col square) square)))
-
-(defclass inverted-square (square) ())
-(defmethod (setf direction) (v (square inverted-square))
-  (call-next-method (case v (:left :right) (:right :left) (t v)) square))
-
-(defgeneric invert (square)
-  (:method ((sq inverted-square)) (change-class sq 'square))
-  (:method ((sq square)) (change-class sq 'inverted-square))
-  (:method (_)))
-
-(defmethod create (level item &key row col &allow-other-keys)
-  (case item
-    ((nil) nil)
-    ;; (:door (make-door level :door row col))
-    ((:restart :lose :win) (trigger-event *game* item))
-    (:inverter
-     (make-instance 'inverter
-                    :action (lambda () (invert *event*))))
-    (:start (make-instance 'spawn
-                           :action (lambda ()
-                                     (activate-square level row col))))
-    (t
-     (trivia:match item
-       ((list :door name)
-        (let* ((group (or #1=(gethash name (level-groups level))
-                          (let ((fresh (make-instance 'door-group)))
-                            (register level fresh :doors)
-                            (setf #1# fresh))))
-               (door (make-instance 'door
-                                    :group group
-                                    :level level
-                                    :row row
-                                    :col col)))
-          (vector-push-extend door (group-doors group))
-          door))
-       ((list :blocked-square name)
-        (register level
-                  (make-instance 'blocked-square :row row :col col :level level)
-                  name))
-       ((list* :trigger action)
-        (make-instance
-         'trigger
-         :row row
-         :col col
-         :action (parse-action level row col action)))
-       (x x)))))
-
-;; (defclass active-square (square) ())
-
-(defclass trigger (has-update-category has-position)
-  ((action :initarg :action :accessor trigger-action))
-  (:default-initargs :update-category :trigger))
-
-(defclass spawn (has-position has-update-category)
-  ((action :accessor action :initarg :action))
-  (:default-initargs :update-category :start))
-
-(ql:quickload :sdl2)
-
-(defvar *renderer*)
-(defvar *window*)
-
-(define-condition end-of-game () ())
-
-  ;; (call-with-sdl2-context 'test)
-
-(defclass game (has-direction)
-  ((keymap :initform (make-hash-table) :accessor keymap)
-   (level :initform nil :accessor game-level)
-   (squares :initform nil :accessor game-squares)
-   (intents :initform (make-hash-table :test #'equal)
-            :accessor game-intents)))
-
-(defparameter *game* (make-instance 'game))
-
-(progn
-  (defun keybind (key &optional (game *game*))
-    #1=(gethash (sdl2:scancode-key-to-value key)
-                (keymap game)))
-
-  (defun (setf keybind) (callback key &optional (game *game*))
-    (setf #1# callback)))
-
-(defun restart-main-loop ()
-  (error "Debugger"))
-
-(defun color-setter* (r g b a)
-  (lambda ()
-    (sdl2:set-render-draw-color *renderer* r g b a)))
-
-(defun color-setter (color)
-  (destructuring-bind (r g b a) color
-    (color-setter* r g b a)))
-
-;; (setf (keybind :scancode-f2) (let ((setter (color-setter* 1 0 0 1 )))
-;;                                (lambda ()
-;;                                  (print "Pressed F2")
-;;                                  (funcall setter))))
-
-;; (setf (keybind :scancode-escape)
-;;       (lambda () (trigger-event *game* :restart)))
-
-(defgeneric display (game)
-  (:method ((g game))
-    (sdl2:set-render-draw-color *renderer* 100 0 50 100)
-    (sdl2:render-clear *renderer*)
-    (display (game-level g))
-    (sdl2:render-present *renderer*)))
-
-(let ((out *standard-output*))
-  (defun info (x)
-    (prog1 x
-      (print x out))))
-
-(defun again (&rest args)
-  (declare (ignore args))
-  (invoke-restart 'again))
-
-(define-condition restart-function () ())
-
-(defun signaller (condition)
-  (lambda ()
-    (info `(:signaling ,condition))
-    (signal condition)))
+;; size (better if multiple of 10)
+(defparameter *size* 20)
 
 (defvar *gl*)
-(ql:quickload :cl-opengl)
+(defvar *window*)
+(defvar *renderer*)
+(defvar *game*)
 
-(defun call-with-sdl2-context (function)
-  ;; helps with reloading code while the game runs
-  (check-type function symbol)
-  (catch 'sdl2-block
-    (sdl2:with-everything (:window (*window* :w (* *size* 32) :h 800
-                                             :title "Marching squares"
-                                             :flags '(:shown :opengl))
-                           :gl *gl*)
-      (sdl2:with-renderer (*renderer* *window*)
-        (sdl2:gl-make-current *window* *gl*)
-        ;; (gl:shade-model :smooth)
-        ;; (gl:enable :blend)
-        ;; (gl:hint :perspective-correction-hint :nicest)
-        (handler-bind ((restart-function #'again))
+(defclass square-trigger (global-trigger
+                          has-location)
+  ())
+
+(defclass square-lambda (square-trigger
+                         lambda-trigger)
+  ())
+
+(defclass inverter (global-trigger
+                    oneshot
+                    has-location
+                    has-angle
+                    has-absolute-microstep
+                    transformable)
+  ((dy :initform 0 :accessor dy)
+   (up :initform 0 :accessor up))
+  (:default-initargs :angle (random 360)))
+
+(defmethod triggerable ((trigger square-trigger))
+  (find-if #'squarep (objects-at (location trigger))))
+
+(defmethod triggerable ((inverter inverter))
+  (find-if #'invertiblep (objects-at (location inverter))))
+
+(defmethod trigger ((inverter inverter))
+  (map () #'invert (objects-at (location inverter))))
+
+(defclass releaser (square-trigger
+                    has-absolute-microstep
+                    transformable
+                    oneshot)
+  ((alpha :accessor alpha :initform 0)
+   (counter :accessor counter :initform 0)
+   (target :accessor target :initarg :target)))
+
+(defmethod trigger ((releaser releaser))
+  (release (level (location releaser)) (target releaser)))
+
+(defmethod transform-model-view ((trigger releaser))
+  (gl:translate 0.5 0.5 0.5)
+  (gl:rotate (* 3 (counter trigger) #.(/ 180 pi)) 0 0 1))
+
+(defmethod display ((trigger releaser))
+  (set-color #'palette-foreground :alpha (alpha trigger))
+  (csq 0.1))
+
+(defclass helper (square-trigger invisible)
+  ((text :initarg :text
+         :accessor text
+         :initform "Press Esc to restart level")))
+
+(defmethod trigger ((helper helper))
+  (sdl2:set-window-title
+   *window*
+   (text helper)))
+
+(defmethod delta-microstep ((trigger releaser) delta)
+  (setf (counter trigger)
+        (mod (+ (counter trigger)
+                (/ delta internal-time-units-per-second 1/2))
+             #.(* 2 pi)))
+  (setf (alpha trigger)
+        (- 0.6 (abs (/ (sin (counter trigger)) 2)))))
+
+(defclass start-trigger (named-trigger
+                         has-location
+                         oneshot) ()
+  (:default-initargs :name :start))
+
+(defclass spawn-trigger (named-trigger
+                         has-location) ()
+  (:default-initargs :name :spawn))
+
+(defclass inverted-start-trigger (start-trigger) ())
+
+(defmethod trigger ((trigger start-trigger))
+  (activate-square (location trigger)))
+
+(defmethod trigger ((trigger spawn-trigger))
+  (activate-square (location trigger)))
+
+(defmethod trigger ((trigger inverted-start-trigger))
+  (activate-square (location trigger)
+                   (make-instance 'square
+                                  :location (location trigger)
+                                  :inverted t)))
+
+;;;;;
+;;;;;
+
+(defclass vanisher (global-trigger
+                    has-absolute-microstep
+                    has-location)
+  ((pulse :initform 0 :accessor pulse)
+   (offset :initform (random (* 2 pi)) :accessor offset)))
+
+(defmethod delta-microstep ((vanisher vanisher) dt)
+  (setf (pulse vanisher)
+        (mod (+ (pulse vanisher)
+                (/ dt internal-time-units-per-second 1/6))
+             #.(* 2 pi))))
+
+(defmethod display ((vanisher vanisher))
+  (let* ((pulse (+ (offset vanisher) (pulse vanisher)))
+         (intensity (+ 0.3 (/ (sin pulse) 5)))
+         (y 1)
+         (dx (sin (/ (expt pulse 2) 8))))
+    (gl:color 0 0 0 0.1)
+    (gl:rect 0 (+ y 0.1) 1 (+ y 0.2))
+    (gl:color (/ intensity 3)
+              (/ intensity 2)
+              0
+              intensity)
+    (gl:rect (- 0.2 dx) y (+ 0.8 dx) (+ y 0.05))))
+
+(defclass vanishing-square (square)
+  ((ratio :accessor vanishing-ratio :initform 0)))
+
+(defmethod display ((square vanishing-square))
+  (call-next-method)
+  (gl:color 0 0 0 (vanishing-ratio square))
+  (gl:rect 0 0 1 1))
+
+(defmethod update ((g vanishing-square))
+  (setf (location g) :trash))
+
+(defmethod microstep ((square vanishing-square) ratio)
+  (call-next-method)
+  (setf (vanishing-ratio square) ratio))
+
+(defgeneric vanish (object)
+  (:method (_))
+  (:method ((s square))
+    (change-class s 'vanishing-square)))
+
+(defmethod trigger ((vanisher vanisher))
+  (map () #'vanish (objects-at (location vanisher))))
+
+;;;;;
+;;;;;
+
+(defun parse-action (expression level)
+  (match expression
+    ((list :trigger name) (lambda () (trigger-by-name name level)))))
+
+(defmethod build (expression location)
+  (flet ((new (class &rest args)
+           (apply #'make-instance class :location location args)))
+    (match expression
+      ((eq nil) nil)
+      ((list :spawn name) (new 'spawn-trigger :name name))
+      ((eq :start) (new 'start-trigger))
+      ((eq :help) (new 'helper))
+      ((eq :vanisher) (new 'vanisher))
+      ((list :press-button group action)
+       (make-button group location
+                    (parse-action action (level location))
+                    :latchp t))
+      ((list :button group action)
+       (make-button group location
+                    (parse-action action (level location))))
+      ((list :start :inverted) (new 'inverted-start-trigger))
+      ((list :and-group group-name expression)
+       (build expression (named-and-group group-name)))
+      ((list :gate name) (make-door name :location location :pressp nil))      
+      ((list :door name) (make-door name :location location :pressp t))
+      ((list :blocked-square name) (new 'square :name name :blockedp t))
+      ((list :trigger :invert) (new 'inverter))
+      ((list :trigger :lose) (new 'looser))
+      ((list :trigger :win) (new 'winner))
+      ((list :trigger :release name) (new 'releaser :target name))
+      (e (add-object-at-location%% location e)))))
+
+;;;; GAME
+
+(defclass winner (square-lambda
+                  has-absolute-microstep)
+  ((up :initform 0 :accessor up)
+   (counter :initform 0 :accessor counter))
+  (:default-initargs :action (lambda () (win *game*))))
+
+(defclass looser (square-lambda invisible) ()
+  (:default-initargs :action (lambda () (loose *game*))))
+
+(defmethod delta-microstep ((trigger winner) dt)
+  (setf (counter trigger)
+        (mod (+ (counter trigger)
+                (/ dt internal-time-units-per-second))
+             #.(* 2 pi)))
+  (setf (up trigger)
+        (+ -.1 (/ (cos (counter trigger)) 2))))
+
+(defmethod display ((trigger winner))
+  (gl:color 1 1 1 (up trigger))
+  (gl:rect 0 0.9 1 1))
+
+(define-condition restart-game-signal () ())
+(defun restart-game-loop (&rest args)
+  (declare (ignore args))
+  (invoke-restart 'restart-game-loop))
+
+(defgeneric game-setup (game)
+  (:method-combination progn)
+  (:method progn (_)))
+
+(defgeneric game-loop (game)
+  (:method (game)
+    (with-event-loop (:method :poll)
+      (:keydown
+       (:keysym keysym)
+       (game-command game (keybind (scancode-value keysym) game)))
+      (:quit () t)
+      (:idle () (game-idle game)))))
+
+(defgeneric start-game (game)
+  (:method (game)
+    (with-everything (:gl *gl*
+                      :window (*window* :w (width game)
+                                        :h (height game)
+                                        :title (title game)
+                                        :flags '(:shown :opengl)))
+      (with-renderer (*renderer* *window*)
+        (gl-make-current *window* *gl*)
+        (game-setup game)
+        (handler-bind ((restart-game-signal #'restart-game-loop))
           (tagbody
            start
-             (restart-case (funcall function)
-               (again ()
-                 :report "Restart main function"
+             (restart-case (game-loop game)
+               (restart-game-loop ()
+                 :report "Restart game loop"
                  (go start)))))))))
 
-(defgeneric update (object)
-  (:method (_)))
+(defgeneric game-command (game command)
+  (:method (game command) nil)
+  (:method (game (command function)) (funcall command)))
 
-(setf (keybind :scancode-f1) (signaller 'restart-function))
-;; (setf (keybind :scancode-escape)  #'sdl2:push-quit-event)
+(defgeneric game-idle (game))
 
-(setf (keybind :scancode-left) :go-left)
-(setf (keybind :scancode-right) :go-right)
-(setf (keybind :scancode-escape) :restart)
+;;;; MARCHING-SQUARES
 
-(defgeneric conclude-step (object)
-  (:method (_)))
+(defparameter *default-palette*
+  (make-palette :background (list 0.4 0.4 0.5 1)
+                                        ;(list 30/256 60/256 70/256 1)
+                                        ;(list 130/256 0 40/256 1)
+                :wall '(0 0 0 1)
+                :square '(1 1 1 1)
+                :flash/feedback '(1 1 1 1)
+                :inverted-square '(0.7 0.7 1 0.8)
+                :blocked-square '(1 1 1 0.5)
+                :foreground '(1.0 1.0 1.0 0.7)
+                :inverter '(0.8 0.8 0.0 1.)))
 
-(defgeneric microstep (object ratio)
-  (:method (_ r)))
+(defclass marching-squares (has-palette game) ()
+  (:default-initargs
+   :direction nil
+   :title "Marching squares"
+   :width (* *size* 31)
+   :height (* *size* 31)
+   :palette *default-palette*))
 
-(defmethod conclude-step ((game game))
-  (dolist (square (game-squares game))
-    (conclude-step square))
-  (conclude-step (game-level game)))
+;; (defparameter *default-palette*
+;;   (setf (palette *game*)
+;;         (make-palette :background (list 30/100 20/100 10/100 1)
+;;                       :wall '(0.8 0.6 0.1 1)
+;;                       :square '(0 0 0 01)
+;;                       :flash/feedback '(0 0 0 1)
+;;                       :inverted-square '(0 0 0 0.8)
+;;                       :blocked-square '(0 0 0 .9)
+;;                       :foreground '(10/10 9/10 1/10 0.8)
+;;                       :inverter '(1 1 1 1))))
 
-(defmethod conclude-step ((level level))
-  (dolist (group (gethash :doors (level-groups level)))
-    (map () #'conclude-step (group-doors group))))
+(defmethod game-command ((game marching-squares) (command symbol))
+  (case command
+    (:go-left (setf (direction game) :left))
+    (:go-right (setf (direction game) :right))
+    (:restart (restart-game-loop))))
 
-(defmethod conclude-step ((door door))
-  (when (eq (state door) :open)
-    (change-class door 'garbage)))
+(defmethod arbiter-compare
+    ((arbiter marching-squares) location first second)
+  "Game arbiter"
+  (or (and (eq :fall (move-type first))
+           (not (eq :fall (move-type second))))
+      (and (not (invertedp (move-object first)))
+           (invertedp (move-object second)))))
 
-(defmethod trigger-event (x y))
+;; (make-palette
+;;              :background '(0.29296875d0 0.29296875d0 0.390625d0 1.0)
+;;              :square '(1 1 1 1))
 
-(defvar *event* nil)
-(defmethod trigger-event ((trigger trigger) event)
-  (let ((*event* event))
-    (funcall (trigger-action trigger))))
+(defmethod initialize-instance :after
+    ((game marching-squares) &key &allow-other-keys)
+  (setf (keybind :scancode-f1 game) :restart-graphics)
+  (setf (keybind :scancode-left game) :go-left)
+  (setf (keybind :scancode-right game) :go-right)
+  (setf (keybind :scancode-escape game) :restart))
 
-(defmethod conclude-step ((square square))
-  (with-accessors ((next next-position)
-                   (state state)
-                   (col col)
-                   (row row)
-                   (level level)) square
-    (when next
-      (setf (aref (level-array level) row col) nil)
-      (destructuring-bind (_ lev r c) next
-        (declare (ignore _))
-        (setf (row square) r)
-        (setf (col square) c)
-        (setf (level square) lev)
-        (let ((old (aref (level-array level) row col)))
-          (when old
-            (trigger-event old square)))
-        (setf (aref (level-array lev) r c) square))
-      (setf (angle square) 0)
-      (setf (offset-x square) 0)
-      (setf (offset-y square) 0)
-      (setf next nil))))
+(defmethod game-setup progn ((game marching-squares))
+  (gl:enable :blend)
+  ;; (gl:enable :depth-test)
+  (gl:blend-func :src-alpha :one-minus-src-alpha)
+  (gl:blend-equation :func-add)
+  (gl:clear-color 0.4 0.4 0.3 1.0)
+  (gl:clear :color-buffer)
+  (gl:ortho 0 31 31 0 -1 1))
 
-(defun test ()
-  (let ((steps 20)
-        (next-direction))
-    (sdl2:with-event-loop (:method :poll)
-      (:keydown (:keysym keysym)
-                (let* ((binding (keybind (sdl2:scancode-value keysym)
-                                         *game*))
-                       (command (typecase binding
-                                  (function (funcall binding))
-                                  (symbol binding))))
-                  (case command
-                    (:go-left (setf next-direction :left))
-                    (:go-right (setf next-direction :right))
-                    (:restart (trigger-event *game* :restart)
-                     (setf next-direction nil)))))
-      (:idle ()
-             (setf (direction *game*) next-direction
-                   next-direction nil)
-             (update *game*)
-             (loop
-               for s below steps
-               do (display *game*)
-                  ;; (gl:flush)
-                  ;; (sdl2:gl-swap-window *window*)
-                  (microstep *game* (/ s steps))
-                  (sleep 0.005))
-             (conclude-step *game*))
-      (:quit () :quit))))
+(defmethod (setf game-level) :after ((level level) (game game))
+  (setf (width game) (width level)
+        (height game) (height level)))
 
-;; (call-with-sdl2-context 'test)
+(defparameter *test-level* nil)
 
-(declaim (notinline rect%))
-(defun rect% (x y sx sy fill r g b a)
-  (sdl2:set-render-draw-color *renderer* r g b a)
-  (if fill
-      (sdl2:render-fill-rect *renderer* (sdl2:make-rect x y sx sy))
-      (sdl2:render-draw-rect *renderer* (sdl2:make-rect x y sx sy))))
+(defmethod game-loop :before ((game marching-squares))
+  (reinitialize-instance game)
+  (setf (game-level *game*)
+        (build (level-blueprint *game*) *game*))
+  (sdl2:set-window-title *window* (title *game*))
+  (trigger-by-name :start (game-level *game*)))
 
-(defgeneric display-element (element size x y)
-  (:method (_e s x y)
-    ;; (rect% x y s s nil 0 0 0 0)
-    ))
+(defmethod display :after ((game marching-squares))
+  (gl:flush)
+  (sdl2:gl-swap-window *window*))
 
-(defmethod display-element ((trigger inverter) size x y)
-  (gl:color 0.8 0.7 0 0)
-  (let ((rand 9))
-    (gl:rect (+ x rand)
-             (+ y rand)
-             (+ x size (- rand))
-             (+ y size (- rand)))))
+(defmethod game-idle ((game marching-squares))
+  (update game)
+  (let ((microsteps (microsteps game))
+        (duration (microsteps-duration game)))
+    (if (plusp microsteps)
+        (let ((micro-delay (/ duration microsteps)))
+          (dotimes (step microsteps)
+            (microstep game (/ step microsteps))
+            (display game)
+            (sleep micro-delay)))
+        (progn
+          (display game)
+          (sleep (sleep-delay game))))))
 
-(defmethod display-element ((trigger trigger) size x y)
-  )
+(defmethod display ((game marching-squares))
+  (with-accessors ((palette palette)) game
+    (apply #'gl:clear-color (palette-background palette))
+    (gl:clear :color-buffer :depth-buffer)
+    (display (game-level game))))
 
-(defmethod display-element ((element (eql :wall)) s x y)
-  (gl:color 0 0 0 0)
-  (gl:rect x y (+ x s) (+ y s))
-  ;; (rect% x y s s t 0 0 0 0)
-  )
+(defparameter *shadow* 0.1)
+(defun shadow-square (&aux (shadow *shadow*))
+  (gl:rect shadow shadow (1+ shadow) (1+ shadow)))
 
-(defmethod display-element ((square blocked-square) s x y)
-  (with-accessors ((dx offset-x)
-                   (dy offset-y)
-                   (angle angle)) square
-    (gl:with-pushed-matrix
-      (gl:translate (+ dx x) (+ dy y *size*) 0)
-      (gl:rotate angle 0 0 1)
-      (gl:color 0 0 0 0)
-      (gl:rect 0 3 s (- s))
-      (gl:color 0.2 0.2 0.2 0)
-      (gl:rect 1 -1 (- s 1) (- (- s 1)))
-      (gl:color 0.8 0.8 0.8 0)
-      (gl:rect 3 -3 (- s 3) (- (- s 3))))))
+(defmethod display ((cell (eql :wall)))
+  (let ((wall-color (palette-wall (palette *game*))))
+    (apply #'gl:color wall-color)
+    (gl:rect 0 0 1 1)))
 
-(defmethod display-element ((square square) s x y)
-  (with-accessors ((dx offset-x)
-                   (dy offset-y)
-                   (angle angle)) square
-    (gl:with-pushed-matrix
-      (gl:translate (+ dx x) (+ dy y *size*) 0)
-      (gl:rotate angle 0 0 1)
-      (gl:color 0 0 0 0)
-      (gl:rect 0 0 s (- s))
-      (gl:color 0.2 0.2 0.2 0)
-      (gl:rect 1 -1 (- s 1) (- (- s 1)))
-      (gl:color 1. 1. 1. 0)
-      (gl:rect 3 -3 (- s 3) (- (- s 3))))))
+(defun set-color (reader &key alpha palette)
+  (destructuring-bind (r g b a) (funcall reader (or palette
+                                                    (palette *game*)))
+    (gl:color r g b (or alpha a))))
 
-(defmethod display-element ((square inverted-square) s x y)
-  (with-accessors ((dx offset-x)
-                   (dy offset-y)
-                   (angle angle)) square
-    (gl:with-pushed-matrix
-      (gl:translate (+ dx x) (+ dy y *size*) 0)
-      (gl:rotate angle 0 0 1)
-      (gl:color 0 0 0 0)
-      (gl:rect 0 0 s (- s))
-      (gl:color 0.2 0.2 0.2 0)
-      (gl:rect 1 -1 (- s 1) (- (- s 1)))
-      (gl:color 0.9 0.9 0.4 0)
-      (gl:rect 4 -4 (- s 4) (- (- s 4))))))
+(defmethod delta-microstep ((trigger inverter) dt)
+  (setf (angle trigger)
+        (mod (round (+ (angle trigger)
+                       (/ (* dt 180)
+                          internal-time-units-per-second)))
+             360))
+  (setf (dy trigger)
+        (destructuring-bind (north south) (neighbours trigger :n :s)
+          (if (or (objects-at north) (objects-at south))
+              (if (< (dy trigger) 0.01) 0 (* (dy trigger) 0.9))
+              (/ (sin (* #.(/ pi 180) (angle trigger))) 6)))))
 
-(defun radian (degree)
-  (* degree #.(float (/ pi 180) 0d0)))
+(defmethod transform-model-view ((trigger inverter))
+  (let ((s (+ 0.9 (random 0.3))))
+    (gl:translate 0.5 (+ 0.5 (dy trigger)) 0)
+    (gl:scale s s 1)
+    (gl:rotate 45 1 0 1)
+    (gl:rotate (- (angle trigger)) 0 1 0)))
 
-(defmethod microstep ((game game) ratio)
-  (dolist (s (game-squares game))
-    (microstep s ratio))
-  (microstep (game-level game) ratio))
+(declaim (inline csq))
+(defun csq (size)
+  (gl:rect (- size) (- size) size size))
 
-(defmethod microstep ((level level) ratio)
-  (dolist (group (gethash :doors (level-groups level)))
-    (map ()
-         (lambda (door) (microstep door ratio))
-         (group-doors group))))
+(defmethod display ((trigger inverter))
+  (set-color #'palette-square :alpha 0.35)
+  (csq 0.2)
+  (gl:translate 0 0 0.05)
+  (csq 0.1)
+  (gl:translate 0 0 -0.1)
+  (csq 0.1)
+  (set-color #'palette-inverter)
+  (csq 0.05))
 
-(defmethod microstep ((square square) ratio)
-  (case (state square)
-    (:falling
-     (setf (angle square) 0)
-     (setf (offset-y square) (* ratio *size*)))
-    (:staying)
-    (:lefting
-     (setf (angle square) (* ratio -90)))
-
-    (:righting
-     (setf (angle square) (+ -90 (* ratio 90)))
-     (setf (offset-x square) *size*)
-     ;; (setf (offset-y square) *size*)
-     )))
-
-(defmethod microstep ((door door) ratio)
-  (case (state door)
-    (:closed (setf (openness door) 0))
-    (:open (setf (openness door) ratio))))
-
-(defmethod display-element ((door door) s x y)
-  (flet ((draw (low high)
-           (gl:color 0.0 0.0 0.0 1)
-           (gl:rect low y high (+ y 5))
-           (gl:color 1.0 1.0 1.0 1)
-           (gl:rect  (+ 1 low) (+ y 2) (1- high) (+ y 3))))
-    (with-accessors ((openness openness)) door
-      (let ((ratio (* (- 1 openness) (/ s 2))))
-        (draw x (round (+ x ratio)))
-        (draw (round (+ x s (- ratio)))
-              (+ x s))))))
-
-(defmethod display ((level level))
-  (let ((array (level-array level))
-        (size *size*))
-    (destructuring-bind (rows cols) (array-dimensions array)
-      (dotimes (row rows)
-        (dotimes (col cols)
-          (let ((y (* row size))
-                (x (* col size)))
-            (display-element (aref array row col)
-                             size x y)))))))
-
-(defgeneric trigger-event (game event))
-
-(defmethod trigger-event ((game game) (event (eql :init)))
-  (setf (game-squares game) nil)
-  (setf (direction game) nil)
-  (clrhash (game-intents game))
-  (with-accessors ((description level-source-description)
-                   (bindings level-source-bindings)
-                   (next level-next))
-      (game-level game)
-    (setf (game-level game)
-          (make-level description bindings next))))
-
-(defclass garbage ()  ())
-(defun garbagep (x)
-  (or (null x)
-      (typep x 'garbage)))
-
-(defmethod trigger-event ((game game) (event (eql :restart)))
-  (trigger-event game :init)
-  (setf #1=(gethash :start (level-categories (game-level game)))
-        (delete-if #'garbagep
-                   (mapcar (lambda (u) (trigger-event u :restart))
-                           #1#))))
-
-(defmethod trigger-event ((game game) (event (eql :next-level)))
-  (let ((next (level-next (game-level game))))
-    (cond
-      (next
-       (setf (game-level game) next)
-       (trigger-event game :restart))
-      (t (info "Congratulations, you win.")
-         (sdl2:push-quit-event)))))
-
-(defmethod trigger-event ((spawn spawn) event)
-  (prog1 nil
-    (funcall (action spawn))))
-
-(defstruct wish intent square accept-fn)
-(defstruct neighbours
-  (left nil)
-  (up-left nil)
-  (up nil)
-  (up-right nil)
-  (right nil)
-  (down nil))
-
-(defun pick-candidate (candidates)
-  (cond
-    ((not (cdr candidates)) (first candidates))
-    (t (or (find :fall candidates :key #'wish-intent)
-           (alexandria:random-elt
-            (loop
-              for x in candidates
-              if (typep (wish-square x) 'inverted-square)
-                collect x into inv
-              else
-                collect x into norm
-              finally (list inv norm)
-                      (return (or norm inv))))))))
-
-
-
-(defmethod update ((game game))
+(defmethod update ((game marching-squares))
   (let ((direction (direction game)))
-    (dolist (s (game-squares game))
-      (setf (direction s) direction)))
-  (clrhash (game-intents game))
-  (loop
-    for square in (game-squares game)
-    for (intent target fn) = (update square)
-    when intent
-      do (push (make-wish :intent intent
-                          :square square
-                          :accept-fn fn)
-               (gethash target (game-intents game))))
-  (maphash (lambda (target candidates)
-             (declare (ignore target))
-             (let ((kept (pick-candidate candidates)))
-               (when (wish-accept-fn kept)
-                 (funcall (wish-accept-fn kept)))))
-           (game-intents game))
+    (dogroup (mobile (mobiles game))
+      (setf (direction mobile) direction)))
+  (setf (direction game) nil)
+  (update (mobiles game))
+  (update (active-objects game))
+  (arbiter-moves game (mobiles game))
+  (trigger (triggers game))  
   (update (game-level game)))
 
-(defmethod update ((level level))
-  (map () #'update (gethash :doors (level-groups level))))
+(defmethod allow-move-p (mobile (wall (eql :wall))) nil)
 
-(defgeneric pushed (button)
-  (:method ((garbage garbage)) nil)
-  (:method ((door door))
-    (not (is-free (neighbours-up (neighbours door))))))
+(defmethod compute-next-move ((square square))
+  (unless (blockedp square)
+    (let* ((location (location square))
+           (down (first (neighbours location :s))))
+      (if (allow-move-p square down)
+          (values :fall down)
+          (let ((up (first (neighbours location :n))))
+            (when (allow-move-p square up)
+              (case (direction square)
+                (:left (destructuring-bind (nw w)
+                           (neighbours location :nw :w)
+                         (when (and (allow-move-p square nw)
+                                    (allow-move-p square w))
+                           (values :left w))))
+                (:right (destructuring-bind (ne e)
+                            (neighbours location :ne :e)
+                          (when (and (allow-move-p square ne)
+                                     (allow-move-p square e))
+                            (values :right e)))))))))))
 
-(defgeneric open-door (door)
-  (:method ((door door))
-    (setf (state door) :open)))
+(defparameter *intro-level*
+  (make-instance
+   'level-blueprint
+   :width 31
+   :height 31
+   :grid #("               V                  "
+           "                                  "
+           "                                  "
+           "           #H#######-#####        "
+           "           ######### #####        "
+           "                       ###        "
+           "             #####  b  ###        "
+           "             ##B##     ###        "
+           "                       ###        "
+           "                       ###        "
+           "     ########=###=########        "
+           "     ###       #                  "
+           "               #       8          "
+           "     #########:#:#########        "
+           "                                  "
+           "                                  "
+           " # ########~########~####### #    "
+           "           e###E#                 "
+           "                                  "
+           "           ##     ######          "
+           "                #                 "
+           "          #### ##  #              "
+           "                 #       XXXXX    "
+           "           ##     8#              "
+           "         #    ##8#                "
+           "           # ###   #              "
+           "          #      #                "
+           "                 #                "
+           "      ###^###^#####^##            "
+           "                                  "
+           "XXXXXXXXX@XXX@XXXXX@XXXXXXXXXXXXXXXXXXX")
+   :bindings '((#\b . (:trigger :release x))
+               (#\B . (:blocked-square x))
+               (#\e . (:trigger :release y))
+               (#\E . (:blocked-square y))
+               (#\f . (:trigger :release z))
+               (#\F . (:blocked-square z))
+            ;; (#\X . (:trigger :lose))
+               (#\@ . (:trigger :win))
+               (#\8 . (:trigger :invert))
+               (#\V . :start)
+               (#\H . :help)
+               (#\- . (:door door-1))
+               (#\= . (:door door-2))
+               (#\~ . (:door door-3))
+               (#\^ . (:door door-4))
+               (#\: . (:door door-5)))))
 
-(defmethod update ((group door-group))
-  (when (every #'pushed (group-doors group))
-    (map () #'open-door (group-doors group)))
-  (map () #'update (group-doors group)))
+(defparameter *ramping-level*
+  (make-instance
+   'level-blueprint
+   :width 31
+   :height 31
+   :grid #("         V   W     V                     "
+           "                       ###########       "
+           "############# ######################    "
+           "#######              ######################    "
+           "########             #####################    "
+           "#######              ##############      "
+           "####BBB####=##=##=###BBB###########         "
+           "####BB                BB###########         "
+           "####B         b        B########  "
+           "                                  "
+           "           8     8                "
+           "              8                   "
+           "                                  "
+           "          ############### ###########       "
+           "    #####    #            ###########               "
+           "     #                    ###########               "
+           " #           #            ###########               "
+           "### ## ### # ########## # ###########               "
+           "### ##^###^# # ########^# ###########               "
+           "### ##     # # ###      # ###########               "
+           "### ##     # # #E#      # ###########               "
+           "### ##     # #         e# ###########               "
+           "### ##     # #          # ###########               "
+           "###^##     ###          #^###########               "
+           "                                                    "
+           "%%%%%%%%%%%%%%%   %%%%%%%%%%%%%%%%%%%%%%%%%%"
+           "                                                    "
+           "               #                                     "
+           "               ##                                    "
+           "                                                     "
+           "                 @                                   ")
+   :bindings '((#\b . (:trigger :release x))
+               (#\B . (:blocked-square x))
+               (#\e . (:trigger :release y))
+               (#\E . (:blocked-square y))
+               (#\f . (:trigger :release z))
+               (#\F . (:blocked-square z))
+               ;; (#\X . (:trigger :lose))
+               (#\@ . (:trigger :win))
+               (#\8 . (:trigger :invert))
+               (#\V . :start)
+               (#\W . (:start :inverted))
+               (#\H . :help)
+               (#\% . :vanisher)
+               (#\- . (:door door-1))
+               (#\= . (:door door-2))
+               (#\~ . (:door door-3))
+               (#\^ . (:door door-4))
+               (#\: . (:door door-5)))))
 
-(defmethod update ((square blocked-square)))
-
-
-(defgeneric animation-step (object)
-  (:method (_)))
-
-(defun neighbours (cell)
-  (with-accessors ((row row) (col col) (level level)) cell
-    (let ((array (level-array level))
-          (n (make-neighbours)))
-      (prog1 n
-        (flet ((neighbour (slot delta-row delta-col)
-                 (let ((row (+ row delta-row))
-                       (col (+ col delta-col)))
-                   (when (array-in-bounds-p array row col)
-                     (setf (slot-value n slot)
-                           (list (aref array row col) level row col))))))
-          (progn (neighbour 'left    0 -1)
-                 (neighbour 'up-left -1 -1)
-                 (neighbour 'right    0 1)
-                 (neighbour 'up-right -1 1)
-                 (neighbour 'up       -1 0)
-                 (neighbour 'down    1 0)))))))
-
-(defgeneric is-free (cell)
-  (:method (any) nil)
-  (:method ((trigger trigger)) t)
-  (:method ((garbage garbage)) t)
-  (:method ((cons cons)) (or (null (car cons))
-                             (is-free (car cons)))))
-
-;; (defmethod animation-step ((game game))
-;;   (loop with continue = nil
-;;         for square in (game-squares game)
-;;         do (setf continue (or (animation-step square) continue))
-;;         finally (return continue)))
-
-(defmethod update ((square square))
-  (with-accessors ((next next-position)
-                   (state state)) square
-    (with-accessors ((left neighbours-left)
-                     (right neighbours-right)
-                     (up-left neighbours-up-left)
-                     (up-right neighbours-up-right)
-                     (up  neighbours-up)
-                     (down neighbours-down))
-        (neighbours square)
-      (setf (state square) :staying)
-      (flet ((left () (setf state :lefting
-                            next left))
-             (right () (setf state :righting
-                             next right))
-             (fall () (setf state :falling
-                            next down)))
-        (cond
-          ((is-free down) `(:fall ,(rest down) ,#'fall))
-          ((not (is-free up))
-           '(:stay nil nil))
-          ((not (direction square)) '(:stay nil nil))
-          ((and (is-free left)
-                (is-free up-left)
-                (eql (direction square) :left))
-           `(:walk ,(rest left) ,#'left))
-          ((and (is-free right)
-                (is-free up-right)
-                (eql (direction square) :right))
-           `(:walk ,(rest right) ,#'right)))))))
-
-;; (gethash :start (level-categories (game-level *game*)))
-;; (aref (level-array (game-level *game*)) 0 16)
-
-;; (mapcar #'neighbours (game-squares *game*))
-
-;; (trigger-event *game* :restart)
-
-;; (defmethod update ((door door))
-;;   (case (next-state door)
-;;     (setf (state door) door)))
-
-;; (declaim (notinline test))
-
-
-
-(defparameter *level-1*
-  (make-level #("                V               "
-                "                                "
-                "                                "
-                "                                "
-                "            # #######-#####     "
-                "            ###                 "
-                "                                "
-                "                                "
-                "###################             "
-                "       #      ##B##  b          "
-                "       #                        "
-                "       #                 #      "
-                "       ##### ####=###=####      "
-                "           ###                  "
-                "                     8          "
-                "                                "
-                "          # ###~########~#      "
-                "          ###  e#  #            "
-                "                   E            "
-                "               #      ######    "
-                "                    #      # ###"
-                "              ###  ##      ###  "
-                "                    ##          "
-                "               ##               "
-                "                # #   8         "
-                "                # ##            "
-                "             #######8           "
-                "                                "
-                "                     #          "
-                "            #^###^#####^######  "
-                "                                "
-                "                                "
-                "       #### ###:######## ###    "
-                "       #       8      F#:#      "
-                "       #                        "
-                "       #  ####:       @         "
-                "       #  #   f                 "
-                "       ####                     "
-                "                                "
-                "                                "
-                "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-                )
-              (list (cons #\b `(:trigger :release x))
-                    (cons #\B `(:blocked-square x))
-                    (cons #\e `(:trigger :release y))
-                    (cons #\E `(:blocked-square y))
-                    (cons #\f `(:trigger :release z))
-                    (cons #\F `(:blocked-square z))
-                    (cons #\X `(:trigger :lose))
-                    (cons #\@ `(:trigger :win))
-                    (cons #\8 :inverter)
-                    (cons #\V :start)
-                    (cons #\- '(:door door-1))
-                    (cons #\= '(:door door-2))
-                    (cons #\~ '(:door door-3))
-                    (cons #\^ '(:door door-4))
-                    (cons #\: '(:door door-5)))))
-
-(defparameter *level-2*
-  (make-level #("               V                "
-                "                        V       "
-                "                      V         "
-                "              V                 "
-                "                                "
-                "           ##-#######-####      "
-                "           ## ####### ####      "
-                "      8###################8###  "
-                "       ################### ###  "
-                "       ################      #  "
-                "       #                     #  "
-                "       # #####################  "
-                "                                "
-                "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-                )
-              '((#\b . '(:trigger :release x))
-                (#\B . '(:blocked-square x))
-                (#\e . '(:trigger :release y))
-                (#\E . '(:blocked-square y))
-                (#\f . '(:trigger :release z))
-                (#\F . '(:blocked-square z))
-                (#\X . '(:trigger :lose))
-                (#\@ . '(:trigger :win))
-                (#\8 . :inverter)
-                (#\V . :start)
-                (#\- . '(:door door-1)))))
-
-(defparameter *level-2*
-  (make-level #("               V                "
-                "                        V       "
-                "                      V         "
-                "              V                 "
-                "                                "
-                "    ######=## ############   #  "
-                "    ###### ## ############   #  "
-                "    ###### ## ############   #  "
-                "    ###### ##=################  "
-                "    ###### ##     #########B##  "
-                "    ###### ##     ######        "
-                "    ###E##    ###b#             "
-                "      # ##    #                 "
-                "      # ##### #  8              "
-                "      #     #-#-##              "
-                "      #        e                "
-                "      #                    # #  "
-                "      #^###^# ####^####^#### #  "
-                "            # #            # #  "
-                "            #^#   8        # #  "
-                "                           ###  "
-                "                                "
-                "                                "
-                "                                "
-                "  #####~###~~~####~####~######  "
-                "  #                          #  "
-                "  #    @                     #  "
-                "  ############################  "                      
-                "  ############################  "
-                "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-                )
-              '((#\b . (:trigger :release x))
-                (#\B . (:blocked-square x))
-                (#\e . (:trigger :release y))
-                (#\E . (:blocked-square y))
-                (#\f . (:trigger :release z))
-                (#\F . (:blocked-square z))
-                (#\X . (:trigger :lose))
-                (#\@ . (:trigger :win))
-                (#\8 . :inverter)
-                (#\V . :start)
-                (#\- . (:door door-1))
-                (#\= . (:door door-2))
-                (#\^ . (:door door-3))
-                (#\~ . (:door door-4)))))
-
-(setf (level-next *level-1*)
-      *level-2*
-      (game-level *game*) *level-2*)
-
-(defun start ()
-  (setf (game-level *game*) *level-1*)
-  (trigger-event *game* :restart)
-  (call-with-sdl2-context 'test))
-
-(start)
-
-;; (car (last
-;;       (mapcan (lambda (u) (coerce (group-doors u) 'list))
-;;               (gethash :doors (level-groups (game-level *game*))))))
