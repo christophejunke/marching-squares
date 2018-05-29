@@ -498,6 +498,8 @@
                (#\^ . (:door door-4))
                (#\: . (:door door-5)))))
 
+(setf (level-blueprint *game*) *ramping-level*)
+
 (defparameter *ramping-level*
   (make-instance
    'level-blueprint
@@ -528,10 +530,10 @@
            "### ##     # #          # ###########               "
            "###^##     ###          #^###########               "
            "                                                    "
-           "%%%%%%%%%%%%%%%   %%%%%%%%%%%%%%%%%%%%%%%%%%"
-           "                                                    "
-           "               #                                     "
-           "               ##                                    "
+           "%%%%%%%%%%%%%%#   #%%%%%%%%%%%%%%%%%%%%%%%%%"
+           "              #   #                                   "
+           "              #                                      "
+           "              ###                                    "
            "                                                     "
            "                 @                                   ")
    :bindings '((#\b . (:trigger :release x))

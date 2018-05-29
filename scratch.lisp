@@ -4,9 +4,11 @@
 
 (defparameter *game*
   (make-instance 'marching-squares
-                 :level-blueprint *test-level*))
+                 :level-blueprint *ramping-level*))
 
 (start-game *game*)
+
+(setf *size* 11)
 
 (defparameter *test-level*
   (setf (level-blueprint *game*)

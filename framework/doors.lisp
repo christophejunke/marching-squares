@@ -61,9 +61,10 @@
 
 (defmethod update ((door press-door))
   (case (state door)
-    (:waiting (if (pressedp door)
-                  (setf (state door) :open)
-                  (call-next-method)))
+    (:waiting (destructuring-bind (north) (neighbours (location door) :north)
+                (if (find-if #'squarep (objects-at north))
+                    (setf (state door) :open)
+                    (call-next-method))))
     (t (call-next-method))))
 
 (declaim (inline openness-ratio))
