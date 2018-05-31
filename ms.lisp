@@ -413,15 +413,21 @@
   (csq 0.05))
 
 (defmethod update ((game marching-squares))
+  ;; propagate inputs
   (let ((direction (direction game)))
     (dogroup (mobile (mobiles game))
       (setf (direction mobile) direction)))
   (setf (direction game) nil)
+  ;; update state
+  (update (game-level game))
   (update (mobiles game))
   (update (active-objects game))
+  ;; move objects
   (arbiter-moves game (mobiles game))
-  (trigger (triggers game))  
-  (update (game-level game)))
+  ;; trigger
+  (trigger (triggers game))
+  ;; 
+  )
 
 (defmethod allow-move-p (mobile (wall (eql :wall))) nil)
 

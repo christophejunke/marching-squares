@@ -1,6 +1,8 @@
 (in-package :marching-squares)
 
-(defclass mobile (has-location has-layer)
+(defclass mobile (has-location
+                  has-layer
+                  active-object)
   ((next-move :accessor next-move :initform nil))
   (:default-initargs :layer :mobiles))
 
