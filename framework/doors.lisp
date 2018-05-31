@@ -59,9 +59,13 @@
 (defmethod triggerable ((door press-door))
   (or (pressedp door) (call-next-method)))
 
+(defun square-direction-p (location direction)
+  (destructuring-bind (target) (neighbours location direction)
+    (find-if #'squarep (objects-at target))))
+
 (defmethod update ((door press-door))
   (case (state door)
-    (:waiting (if (pressedp door)
+    (:waiting (if (square-direction-p (location door) :north)
                   (setf (state door) :open)
                   (call-next-method)))
     (t (call-next-method))))

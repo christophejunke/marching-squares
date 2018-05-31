@@ -79,8 +79,8 @@
 (defmethod update ((group group))
   (update (items group)))
 
-(defmethod update :before ((group group))
-  (group-purge group))
+;; (defmethod update :before ((group group))
+;;   (group-purge group))
 
 (defmethod triggerable ((group and-group))
   "All must be triggerable before we call TRIGGER"

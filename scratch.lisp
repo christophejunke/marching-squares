@@ -2,11 +2,18 @@
 
 (untrace incorporate)
 
+
+(defparameter *game*
+  (make-instance 'marching-squares
+                 :level-blueprint *intro-level*))
+
 (defparameter *game*
   (make-instance 'marching-squares
                  :level-blueprint *test-level*))
 
 (start-game *game*)
+
+(sb-ext:describe-compiler-policy )
 
 (defparameter *test-level*
   (setf (level-blueprint *game*)
