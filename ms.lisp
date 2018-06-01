@@ -412,22 +412,33 @@
   (set-color #'palette-inverter)
   (csq 0.05))
 
-(defmethod update ((game marching-squares))
-  ;; propagate inputs
+(defgeneric propagate-inputs (item))
+
+(defmethod update ((arbiter move-arbiter))
+  (update (mobiles arbiter))
+  (call-next-method))
+
+(defmethod update :after ((arbiter move-arbiter))
+  (arbiter-moves arbiter (mobiles arbiter)))
+
+(defmethod update ((object has-active-objects))
+  (update (active-objects object))
+  (call-next-method))
+
+(defmethod update ((game game))
+  (propagate-inputs game)
+  (update (game-level game))
+  (call-next-method))
+
+(defmethod update :after ((object has-triggers))
+  (trigger (triggers object)))
+
+(defmethod propagate-inputs ((game game))
   (let ((direction (direction game)))
     (dogroup (mobile (mobiles game))
       (setf (direction mobile) direction)))
-  (setf (direction game) nil)
-  ;; update state
-  (update (game-level game))
-  (update (mobiles game))
-  (update (active-objects game))
-  ;; move objects
-  (arbiter-moves game (mobiles game))
-  ;; trigger
-  (trigger (triggers game))
-  ;; 
-  )
+  (setf (direction game) nil))
+
 
 (defmethod allow-move-p (mobile (wall (eql :wall))) nil)
 
@@ -534,11 +545,11 @@
            "### ##     # #          # ###########               "
            "###^##     ###          #^###########               "
            "                                                    "
-           "%%%%%%%%%%%%%%%   %%%%%%%%%%%%%%%%%%%%%%%%%%"
-           "                                                    "
+           "%%%%%%%%%%%%%%%# #%%%%%%%%%%%%%%%%%%%%%%%%%%"
+           "               # #                                  "
            "               #                                     "
-           "               ##                                    "
-           "                                                     "
+           "               #                                     "
+           "               #####                                 "
            "                 @                                   ")
    :bindings '((#\b . (:trigger :release x))
                (#\B . (:blocked-square x))

@@ -41,8 +41,7 @@
 
 (defclass oneshot () ())
 (defmethod trigger :after ((trigger oneshot))
-  (leave-current-location% trigger)
-  (change-class trigger 'garbage))
+  (setf (location trigger) :trash))
 
 ;; Lambda triggers hold a callback function
 

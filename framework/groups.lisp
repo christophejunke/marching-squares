@@ -77,7 +77,8 @@
   (typep item 'group))
 
 (defmethod update ((group group))
-  (update (items group)))
+  (dogroup (item group)
+    (update item)))
 
 ;; (defmethod update :before ((group group))
 ;;   (group-purge group))

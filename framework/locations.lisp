@@ -46,7 +46,7 @@
           (setf value (first value)))
         (cond
           ((null value))
-          ((consp value) (removef (aref array row col) object))
+          ((consp value) (deletef (aref array row col) object))
           ((eq value object) (setf (aref array row col) nil))
           (t (error "Object ~a not found at location ~a"
                     object

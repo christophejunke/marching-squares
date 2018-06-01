@@ -2,7 +2,6 @@
 
 (untrace incorporate)
 
-
 (defparameter *game*
   (make-instance 'marching-squares
                  :level-blueprint *intro-level*))
@@ -14,6 +13,16 @@
 (start-game *game*)
 
 (sb-ext:describe-compiler-policy )
+
+(let ((out *standard-output*)
+      (first t))
+  (defmethod update :around (any)
+    (when first
+      (print
+       (compute-applicable-methods #'update (list any))
+       out)
+      (setf first nil))
+    (call-next-method)))
 
 (defparameter *test-level*
   (setf (level-blueprint *game*)
@@ -28,7 +37,11 @@
                  "                            "                 
                  "##U#Z#######U#Z####-##-#~##~########    "
                  ""
-                 "                         "
+                 ""
+                 ""
+                 ""
+                 "                  #%##%#%##%#     "
+                 "                  # ## # ## #     "
 )
          :bindings `((#\b . (:trigger :release x))
                      (#\B . (:blocked-square x))
@@ -76,6 +89,15 @@
 (let ((location (location (elt (mobiles (game-level *game*)) 2))))
   (setf (location (elt (mobiles (game-level *game*)) 2))
         (loc (game-level *game*) (- (row location) 4) (- (col location) 2))))
+
+(defun dbg ()
+  (loop 
+    with array = (items (active-objects *game*))
+    with limit = (fill-pointer array)
+    for i below (array-total-size array)
+    when (= i limit) do (format t "~&--------------------~%")
+      do (format t "~&~3,,'0d ~S~%" i (aref array i))
+    finally (return array)))
 
 (trigger-by-name :start (game-level *game*))
 
