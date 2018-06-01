@@ -22,8 +22,9 @@
         (make-array 32 :fill-pointer 0 :adjustable t))))
 
 (defun group-add (object group &aux (vec (items group)))
-  (unless (find object vec)
-    (vector-push-extend object vec)))
+  (if (find object vec)
+      (warn "Object ~a already exists in group ~a" object group)
+      (vector-push-extend object vec)))
 
 (defun group-clear (group)
   (setf (items% group) (make-group-vector% nil)))

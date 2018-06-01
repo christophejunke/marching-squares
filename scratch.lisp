@@ -99,7 +99,24 @@
       do (format t "~&~3,,'0d ~S~%" i (aref array i))
     finally (return array)))
 
+(loop
+  (dotimes (i 10) (terpri))
+  (dbg)
+  (sleep 0.5))
+
 (trigger-by-name :start (game-level *game*))
+
+(setf (location (find-if #'squarep (items (mobiles *game*)))) :trash)
+
+(trigger-by-name 'spawn-1 *game*)
+
+;; test-level, one door says open, the other one closes
+;; (expected behaviour)
+(progn
+  (activate-square (loc (game-level *game*) 1 22))
+  (loop repeat 30
+        do (activate-square (loc (game-level *game*) 1 19))
+        (sleep 0.1)))
 
 (defclass test-game (game) ())
 (defmethod game-idle ((game test-game)))

@@ -1,10 +1,10 @@
 (in-package :marching-squares)
 
 (defclass game (has-direction
-                has-active-objects
-                has-triggers
-                has-keymap
                 move-arbiter
+                has-triggers
+                has-active-objects
+                has-keymap
                 namespace
                 has-dimensions)
   ((title :initform "Unnamed" :accessor title :initarg :title)

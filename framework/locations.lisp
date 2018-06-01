@@ -46,7 +46,10 @@
           (setf value (first value)))
         (cond
           ((null value))
-          ((consp value) (deletef (aref array row col) object))
+          ((consp value)
+           (let ((pruned (delete object (aref array row col))))
+             (setf (aref array row col)
+                   (if (rest pruned) pruned (first pruned)))))
           ((eq value object) (setf (aref array row col) nil))
           (t (error "Object ~a not found at location ~a"
                     object
