@@ -24,33 +24,48 @@
       (setf first nil))
     (call-next-method)))
 
+
+(setf (palette-background (palette *game*))
+      '(0.2 0.2 0.35 1.0 ))
+
 (defparameter *button-intro-level*
   (setf (level-blueprint *game*)
         (make-instance
          'level-blueprint
          :width 31
-         :height 31
-         :grid #("# V          #####      V  #       "
-                 "#            #####         #       "
-                 "#####Z## #############~#####       "
-                 "#                         ##    "
-                 "#  V                      ##     "
-                 "#     ######L######L##### ##    "
-                 "#     ##                  ##      "
-                 "#     ##                  ##       "
-                 "###:########## # ###########   "
-                 "#B           #-#-#        ##   "
-                 "#              #          ##   "
-                 "###            #          ##   "
-                 "###-#####^##########S#######   "
-                 "                               "                 
-                 "                               "
-                 "#############S##########  ##   "
-                 "                               "
-                 "                               "
-                 "############################   "
-                 "                               "
-                 "                               "
+         :height 32
+         :grid #("   V                     V                "
+                 " #            #####                       "
+                 " #####Z## #############~#####             "
+                 "    V                                     "
+                 "                                          "
+                 "       ######L######L###             #     "
+                 "       #    ###                           "
+                 "   #     ##              #                   "
+                 "   #:########## # ########                   "
+                 "              #-#-############             "
+                 "  ##            #          B##            "
+                 "                #                         "
+                 "   #-#####^##########S#####               "
+                 "   #      b                              "                 
+                 "   #                                     "
+                 "   ###########S#########   #             "
+                 "   #########E#             #                 "
+                 "                                      "
+                 "             #=#=#=#=#######                "
+                 "             # #e# #                       "
+                 "             # # # #                       "
+                 "           ### #+# ###_#####               "
+                 "                 #                         "
+                 "              8  #8                        "
+                 "    8########### ####>#$*###8               "
+                 "                    # ## ###                    "
+                 "    f   F           # ## ###                      "
+                 "    ####!########## # ######+#              "                 
+                 "                             #              "                 
+                 "                       <     #             "                 
+                 "   #######,#,#,#,#,#,#,#######               "
+                 "          @ @ @ @ @ @ @                       "
                  )
          :bindings `((#\b . (:trigger :release x))
                      (#\B . (:blocked-square x))
@@ -59,6 +74,8 @@
                      (#\f . (:trigger :release z))
                      (#\F . (:blocked-square z))
                      (#\@ . (:trigger :win))
+                     (#\> . (:blocked-square exit))
+                     (#\< . (:trigger :release exit))
                      (#\8 . (:trigger :invert))
                      (#\V . :start)
                      (#\W . (:start :inverted))
@@ -69,6 +86,14 @@
                      (#\Z . (:button button-group-1 (:trigger gate-3)))
                      (#\S . (:button button-group-3 (:trigger gate-4)))                     
                      (#\L . (:button button-group-2 (:trigger gate-5)))
+                     (#\$ . (:button $ (:trigger unlock-right-square)))                     
+                     (#\+ . (:door final))
+                     (#\, . (:door bye))
+                     
+                     (#\* . (:gate must-close))
+                     (#\! . (:button button-group-5 (:trigger must-close)))
+                     
+                     (#\_ . (:gate unlock-right-square))                     
                      (#\- . (:door door-1))
                      (#\= . (:door door-2))
                      (#\~ . (:gate gate-3))
