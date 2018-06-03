@@ -462,6 +462,8 @@
                                      (allow-move-p square e))
                             (values :right e)))))))))))
 
+(setf (level-blueprint *game*) *intro-level*)
+
 (defparameter *intro-level*
   (make-instance
    'level-blueprint
@@ -473,8 +475,8 @@
            "           #H#######-#####        "
            "           ######### #####        "
            "                       ###        "
-           "             #####  b  ###        "
-           "             ##B##     ###        "
+           "             #####     ###        "
+           "             ##B##  b  ###        "
            "                       ###        "
            "                       ###        "
            "     ########=###=########        "

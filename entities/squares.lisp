@@ -26,12 +26,12 @@
   (setf (blockedp square) nil)
   (activate-square (location square) square))
 
-(defmethod invert ((invertible square))
-  (call-next-method)
-  (case (state invertible)
-    ((:lefting :righting)
-     (setf (state invertible) :staying
-           (next-move invertible) nil))))
+(defmethod invert ((square square))
+  (setf (slot-value square 'direction)
+        (case (direction square)
+          (:left :right)
+          (:right :left)))
+  (call-next-method))
 
 (defun squarep (object)
   (typep object 'square))
@@ -97,6 +97,17 @@
      (gl:rect 0 0 1 1)
      (set-color #'palette-square)
      (gl:rect 0.1 0.1 0.9 0.9))))
+
+;; debug
+;; (defmethod display :after ((square square))
+;;   (when (invertedp square)
+;;     (gl:color 1 0 0 1)
+;;     (gl:rect 0 0 0.3 0.3))
+;;   (case (state square)
+;;     (:lefting (gl:color 0 0 1 1))
+;;     (:righting (gl:color 0 1 0 1))
+;;     (:staying (gl:color 1 1 0 1)))
+;;   (gl:rect 0.7 0 1.0 0.3))
 
 (defmethod authorize-move ((square square) move-type target)
   (multiple-value-bind (state delta)

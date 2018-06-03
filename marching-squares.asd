@@ -3,6 +3,7 @@
   :components ((:file "packages")
                (:module
                 "framework"
+                :depends-on ("packages")
                 :components ((:file "generic")
                              (:file "mixins")
                              (:file "blueprint")

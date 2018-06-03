@@ -10,9 +10,9 @@
   (make-instance 'marching-squares
                  :level-blueprint *test-level*))
 
-(start-game *game*)
+(setf (level-blueprint *game*) *ramping-level*)
 
-(sb-ext:describe-compiler-policy )
+(start-game *game*)
 
 (let ((out *standard-output*)
       (first t))
@@ -24,31 +24,82 @@
       (setf first nil))
     (call-next-method)))
 
-(defparameter *test-level*
+(defparameter *button-intro-level*
   (setf (level-blueprint *game*)
         (make-instance
          'level-blueprint
          :width 31
          :height 31
-         :grid #("    V         V         u   "
-                 "                            "
-                 "                            "
-                 "                            "
-                 "                            "                 
-                 "##U#Z#######U#Z####-##-#~##~########    "
-                 ""
-                 ""
-                 ""
-                 ""
-                 "                  #%##%#%##%#     "
-                 "                  # ## # ## #     "
-)
+         :grid #("# V          #####      V  #       "
+                 "#            #####         #       "
+                 "#####Z## #############~#####       "
+                 "#                         ##    "
+                 "#  V                      ##     "
+                 "#     ######L######L##### ##    "
+                 "#     ##                  ##      "
+                 "#     ##                  ##       "
+                 "###:########## # ###########   "
+                 "#B           #-#-#        ##   "
+                 "#              #          ##   "
+                 "###            #          ##   "
+                 "###-#####^##########S#######   "
+                 "                               "                 
+                 "                               "
+                 "#############S##########  ##   "
+                 "                               "
+                 "                               "
+                 "############################   "
+                 "                               "
+                 "                               "
+                 )
          :bindings `((#\b . (:trigger :release x))
                      (#\B . (:blocked-square x))
                      (#\e . (:trigger :release y))
                      (#\E . (:blocked-square y))
                      (#\f . (:trigger :release z))
                      (#\F . (:blocked-square z))
+                     (#\@ . (:trigger :win))
+                     (#\8 . (:trigger :invert))
+                     (#\V . :start)
+                     (#\W . (:start :inverted))
+                     (#\H . :help)
+                     (#\% . :vanisher)
+                     (#\u . (:spawn spawn-1))
+                     (#\U . (:press-button button-group-1 (:trigger spawn-1)))
+                     (#\Z . (:button button-group-1 (:trigger gate-3)))
+                     (#\S . (:button button-group-3 (:trigger gate-4)))                     
+                     (#\L . (:button button-group-2 (:trigger gate-5)))
+                     (#\- . (:door door-1))
+                     (#\= . (:door door-2))
+                     (#\~ . (:gate gate-3))
+                     (#\^ . (:gate gate-4))
+                     (#\: . (:gate gate-5))))))
+
+(defparameter *test-level*
+  (setf (level-blueprint *game*)
+        (make-instance
+         'level-blueprint
+         :width 31
+         :height 31
+         :grid #("    L         L         u   "
+                 "                            "
+                 "                            "
+                 "                            "
+                 "                                "                 
+                 "##U#Z#######U#Z####-##-#~##~# #####    "
+                 ""
+                 "                  #%##%#%##%#     "
+                 "                  # ## # ## #     "                 
+                 ""
+                 "    8    8   8   8 WV 8   8           "
+                 " #################################")
+         :bindings `((#\b . (:trigger :release x))
+                     (#\B . (:blocked-square x))
+                     (#\e . (:trigger :release y))
+                     (#\E . (:blocked-square y))
+                     (#\f . (:trigger :release z))
+                     (#\F . (:blocked-square z))
+                     (#\L . :start)
                      ;; (#\X . (:trigger :lose))
                      (#\@ . (:trigger :win))
                      (#\8 . (:trigger :invert))

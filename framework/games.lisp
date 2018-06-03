@@ -2,8 +2,8 @@
 
 (defclass game (has-direction
                 move-arbiter
-                has-triggers
                 has-active-objects
+                has-triggers
                 has-keymap
                 namespace
                 has-dimensions)
