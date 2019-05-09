@@ -1,5 +1,6 @@
 (defpackage :marching-squares
   (:use
+   :bricabrac.sdl2.event-loop
    :cl
    :alexandria)
   (:import-from :sdl2
@@ -16,7 +17,7 @@
 (in-package :marching-squares)
 
 ;; size (better if multiple of 10)
-(defparameter *size* 20)
+(defparameter *size* 30)
 
 (defvar *gl*)
 (defvar *window*)
@@ -59,7 +60,20 @@
    (target :accessor target :initarg :target)))
 
 (defmethod trigger ((releaser releaser))
-  (release (level (location releaser)) (target releaser)))
+  (let ((level (level (location releaser)))
+        (target (target releaser)))
+    (release level target)
+    ;; remove other triggers
+    (dogroup (trigger (triggers (game level)))
+      (unless (eq trigger releaser)
+        (when (typep trigger '(and releaser oneshot))
+          (when (eq (target trigger) target)
+            (setf (location trigger) :trash)))))))
+
+;; triggers in LEVEL or in GAME????
+(defmethod release :after ((level level) target)
+  )
+
 
 (defmethod transform-model-view ((trigger releaser))
   (gl:translate 0.5 0.5 0.5)
@@ -72,7 +86,7 @@
 (defclass helper (square-trigger invisible)
   ((text :initarg :text
          :accessor text
-         :initform "Press Esc to restart level")))
+         :initform "")))
 
 (defmethod trigger ((helper helper))
   (sdl2:set-window-title
@@ -82,10 +96,10 @@
 (defmethod delta-microstep ((trigger releaser) delta)
   (setf (counter trigger)
         (mod (+ (counter trigger)
-                (/ delta internal-time-units-per-second 1/2))
+                (/ delta internal-time-units-per-second 1/16))
              #.(* 2 pi)))
   (setf (alpha trigger)
-        (- 0.6 (abs (/ (sin (counter trigger)) 2)))))
+        (- 1 (abs (/ (sin (counter trigger)) 6)))))
 
 (defclass start-trigger (named-trigger
                          has-location
@@ -168,6 +182,12 @@
   (match expression
     ((list :trigger name) (lambda () (trigger-by-name name level)))))
 
+(defclass invisible-blocker (has-location
+                             immaterial
+                             invisible)
+  ())
+
+;; FIXME: not all in a single function
 (defmethod build (expression location)
   (flet ((new (class &rest args)
            (apply #'make-instance class :location location args)))
@@ -175,7 +195,7 @@
       ((eq nil) nil)
       ((list :spawn name) (new 'spawn-trigger :name name))
       ((eq :start) (new 'start-trigger))
-      ((eq :help) (new 'helper))
+      ((list* :help message) (new 'helper :text (ensure-car message)))
       ((eq :vanisher) (new 'vanisher))
       ((list :press-button group action)
        (make-button group location
@@ -187,10 +207,14 @@
       ((list :start :inverted) (new 'inverted-start-trigger))
       ((list :and-group group-name expression)
        (build expression (named-and-group group-name)))
-      ((list :gate name) (make-door name :location location :pressp nil))      
+      ((list* :gate name options)
+       (apply #'make-door name :location location :pressp nil options)) 
       ((list :door name) (make-door name :location location :pressp t))
       ((list :blocked-square name) (new 'square :name name :blockedp t))
+      ((list :invisible-blocker) (new 'invisible-blocker))
       ((list :trigger :invert) (new 'inverter))
+      ((list* :class class initargs) (apply #'make-instance class initargs))
+      ((list* :class/loc class initargs) (apply #'new class initargs))
       ((list :trigger :lose) (new 'looser))
       ((list :trigger :win) (new 'winner))
       ((list :trigger :release name) (new 'releaser :target name))
@@ -228,22 +252,25 @@
   (:method-combination progn)
   (:method progn (_)))
 
+(use-package :bricabrac.sdl2.event-loop)
+
 (defgeneric game-loop (game)
   (:method (game)
-    (with-event-loop (:method :poll)
-      (:keydown
-       (:keysym keysym)
-       (game-command game (keybind (scancode-value keysym) game)))
-      (:quit () t)
+    (do-match-events (:method :poll)
+      (with-key-down-event (_ :keysym keysym)
+        (game-command game (keybind (scancode-value keysym) game)))
+      (with-window-event-resized (_ :width width :height height)
+        (resize-game game width height))
+      (:quit () (return))
       (:idle () (game-idle game)))))
 
 (defgeneric start-game (game)
   (:method (game)
     (with-everything (:gl *gl*
-                      :window (*window* :w (width game)
-                                        :h (height game)
+                      :window (*window* :w (* *size* (width game))
+                                        :h (* *size* (height game))
                                         :title (title game)
-                                        :flags '(:shown :opengl)))
+                                        :flags '(:shown :opengl :resizable)))
       (with-renderer (*renderer* *window*)
         (gl-make-current *window* *gl*)
         (game-setup game)
@@ -279,8 +306,8 @@
   (:default-initargs
    :direction nil
    :title "Marching squares"
-   :width (* *size* 31)
-   :height (* *size* 31)
+   :width 31
+   :height 31
    :palette *default-palette*))
 
 ;; (defparameter *default-palette*
@@ -294,8 +321,62 @@
 ;;                       :foreground '(10/10 9/10 1/10 0.8)
 ;;                       :inverter '(1 1 1 1))))
 
+(defun fill-view (width height)
+  (let* ((max (max width height))
+         (w-delta (/ (- max width) 2))
+         (h-delta (/ (- max height) 2)))
+    (values (ceiling (- w-delta))
+            (ceiling (- h-delta))
+            max
+            max)))
+
+(defun shrink-view (width height)
+  (let* ((min (min width height))
+         (w-delta (/ (- min width) 2))
+         (h-delta (/ (- min height) 2)))
+    (values (ceiling (- w-delta))
+            (ceiling (- h-delta))
+            min
+            min)))
+
+;; (defun best-fit (game width height)
+;;   (when (< height 32)
+;;     (setf height 32))
+;;   (let ((game-ratio (/ (width game) (height game)))
+;;         (window-ratio (/ width height)))
+    
+    
+    
+;;     )
+;;   (values 0 0 width height))
+
+(defun ortho-dim (width height)
+  (values (floor width *size*)))
+
+(defgeneric resize-game (game width height)
+  (:method ((game marching-squares) width height)
+    (multiple-value-call #'gl:viewport (shrink-view width height))
+    (gl:matrix-mode :projection)
+    (gl:load-identity)
+    (gl:ortho -1 1 -1 1 -1 1)
+))
+
+              ;; (width game)
+              ;; (height game)
+              ;; 0 -1 1
+;;(setf *size* 20)
+(defmethod game-setup progn ((game marching-squares))
+  (gl:enable :blend)
+  ;; (gl:enable :depth-test)
+  (gl:blend-func :src-alpha :one-minus-src-alpha)
+  (gl:blend-equation :func-add)
+  (gl:clear-color 0.4 0.4 0.3 1.0)
+  (gl:clear :color-buffer)
+  (gl:ortho 0 31 31 0 -1 1))
+
 (defmethod game-command ((game marching-squares) (command symbol))
   (case command
+    (:restart-loop (restart-game-loop))
     (:go-left (setf (direction game) :left))
     (:go-right (setf (direction game) :right))
     (:restart (restart-game-loop))))
@@ -317,20 +398,19 @@
   (setf (keybind :scancode-f1 game) :restart-graphics)
   (setf (keybind :scancode-left game) :go-left)
   (setf (keybind :scancode-right game) :go-right)
-  (setf (keybind :scancode-escape game) :restart))
-
-(defmethod game-setup progn ((game marching-squares))
-  (gl:enable :blend)
-  ;; (gl:enable :depth-test)
-  (gl:blend-func :src-alpha :one-minus-src-alpha)
-  (gl:blend-equation :func-add)
-  (gl:clear-color 0.4 0.4 0.3 1.0)
-  (gl:clear :color-buffer)
-  (gl:ortho 0 31 31 0 -1 1))
+  (setf (keybind :scancode-escape game) :restart)
+  (setf (keybind :scancode-f2 game) :restart-loop))
 
 (defmethod (setf game-level) :after ((level level) (game game))
   (setf (width game) (width level)
         (height game) (height level)))
+
+;; NO: e.g. prepare next blueprint while level is playing
+;;
+;; (defmethod (setf level-blueprint) :after ((blueprint has-dimensions)
+;;                                           (game game))
+;;   (setf (width game) (width blueprint)
+;;         (height game) (height blueprint)))
 
 (defparameter *test-level* nil)
 
@@ -363,6 +443,8 @@
   (with-accessors ((palette palette)) game
     (apply #'gl:clear-color (palette-background palette))
     (gl:clear :color-buffer :depth-buffer)
+    ;; (gl:color 0.5 0.5 0.5 0.3)
+    ;; (gl:rect -1 -1 32 32)
     (display (game-level game))))
 
 (defparameter *shadow* 0.1)
@@ -383,7 +465,8 @@
   (setf (angle trigger)
         (mod (round (+ (angle trigger)
                        (/ (* dt 180)
-                          internal-time-units-per-second)))
+                          internal-time-units-per-second
+                          2)))
              360))
   (setf (dy trigger)
         (destructuring-bind (north south) (neighbours trigger :n :s)
@@ -392,10 +475,10 @@
               (/ (sin (* #.(/ pi 180) (angle trigger))) 6)))))
 
 (defmethod transform-model-view ((trigger inverter))
-  (let ((s (+ 0.9 (random 0.3))))
+  (let ((s (+ 0.9 (random 0.15))))
     (gl:translate 0.5 (+ 0.5 (dy trigger)) 0)
     (gl:scale s s 1)
-    (gl:rotate 45 1 0 1)
+    (gl:rotate 50 1 0 1)
     (gl:rotate (- (angle trigger)) 0 1 0)))
 
 (declaim (inline csq))
@@ -403,14 +486,15 @@
   (gl:rect (- size) (- size) size size))
 
 (defmethod display ((trigger inverter))
-  (set-color #'palette-square :alpha 0.35)
+  (set-color #'palette-wall :alpha 0.8)
   (csq 0.2)
-  (gl:translate 0 0 0.05)
-  (csq 0.1)
+  (set-color #'palette-inverter :alpha 0.8)
+  (csq 0.15)
+  (set-color #'palette-square :alpha 0.4)
   (gl:translate 0 0 -0.1)
   (csq 0.1)
-  (set-color #'palette-inverter)
-  (csq 0.05))
+  (gl:translate 0 0 +0.2)
+  (csq 0.1))
 
 (defgeneric propagate-inputs (item))
 
@@ -439,10 +523,9 @@
       (setf (direction mobile) direction)))
   (setf (direction game) nil))
 
-
 (defmethod allow-move-p (mobile (wall (eql :wall))) nil)
 
-(defmethod compute-next-move ((square square))
+(defmethod compute-next-move ((square abstract-square))
   (unless (blockedp square)
     (let* ((location (location square))
            (down (first (neighbours location :s))))
@@ -462,60 +545,9 @@
                                      (allow-move-p square e))
                             (values :right e)))))))))))
 
-(setf (level-blueprint *game*) *intro-level*)
+;;(setf (level-blueprint *game*) *intro-level*)
 
-(defparameter *intro-level*
-  (make-instance
-   'level-blueprint
-   :width 31
-   :height 31
-   :grid #("               V                  "
-           "                                  "
-           "                                  "
-           "           #H#######-#####        "
-           "           ######### #####        "
-           "                       ###        "
-           "             #####     ###        "
-           "             ##B##  b  ###        "
-           "                       ###        "
-           "                       ###        "
-           "     ########=###=########        "
-           "     ###       #                  "
-           "               #       8          "
-           "     #########:#:#########        "
-           "                                  "
-           "                                  "
-           " # ########~########~####### #    "
-           "           e###E#                 "
-           "                                  "
-           "           ##     ######          "
-           "                #                 "
-           "          #### ##  #              "
-           "                 #       XXXXX    "
-           "           ##     8#              "
-           "         #    ##8#                "
-           "           # ###   #              "
-           "          #      #                "
-           "                 #                "
-           "      ###^###^#####^##            "
-           "                                  "
-           "XXXXXXXXX@XXX@XXXXX@XXXXXXXXXXXXXXXXXXX")
-   :bindings '((#\b . (:trigger :release x))
-               (#\B . (:blocked-square x))
-               (#\e . (:trigger :release y))
-               (#\E . (:blocked-square y))
-               (#\f . (:trigger :release z))
-               (#\F . (:blocked-square z))
-            ;; (#\X . (:trigger :lose))
-               (#\@ . (:trigger :win))
-               (#\8 . (:trigger :invert))
-               (#\V . :start)
-               (#\H . :help)
-               (#\- . (:door door-1))
-               (#\= . (:door door-2))
-               (#\~ . (:door door-3))
-               (#\^ . (:door door-4))
-               (#\: . (:door door-5)))))
+
 
 (defparameter *ramping-level*
   (make-instance
@@ -571,4 +603,6 @@
                (#\~ . (:door door-3))
                (#\^ . (:door door-4))
                (#\: . (:door door-5)))))
+
+
 

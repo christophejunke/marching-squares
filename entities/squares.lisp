@@ -5,17 +5,19 @@
 
 ;; extract
 
-(defclass square (has-invertible-direction
-                  has-name
-                  has-angle
-                  blockable
-                  mobile
-                  transformable)
+(defclass abstract-square (has-invertible-direction
+                           has-name
+                           has-angle
+                           blockable
+                           mobile
+                           transformable)
   ((pivot-x :initform 0 :accessor pivot-x)
    (pivot-y :initform 0 :accessor pivot-y)
    (offset-y :initform 0 :accessor offset-y)
    (state :accessor state :initform nil))
   (:default-initargs :name 'square))
+
+(defclass square (abstract-square) ())
 
 (defun activate-square (location &optional (square nil sp))
   (unless (and (not sp) (some #'squarep (objects-at location)))
@@ -37,7 +39,7 @@
   (typep object 'square))
 
 ;; TODO origin at square center (simplifies)
-(defmethod transform-model-view ((square square))
+(defmethod transform-model-view ((square abstract-square))
   ;; translate to pivot point (and add Y offset)
   (gl:translate (float (pivot-x square))
                 (float (+ (offset-y square)
@@ -55,7 +57,7 @@
   ;; go back to top left corner
   (gl:translate -0.5 -0.5 0))
 
-(defmethod microstep ((square square) ratio)
+(defmethod microstep ((square abstract-square) ratio)
   (with-accessors ((da angle-offset)
                    (px pivot-x)
                    (py pivot-y)
@@ -87,7 +89,7 @@
      (set-color #'palette-wall)
      (gl:rect 0 0 1 1)
      (set-color #'palette-square)
-     (gl:rect 0.1 0.1 0.9 0.9)
+     (gl:rect 0.10 0.10 0.9 0.9)
      (set-color #'palette-wall)
      (gl:rect 0.15 0.15 0.85 0.85)
      (set-color #'palette-inverted-square)
@@ -109,7 +111,7 @@
 ;;     (:staying (gl:color 1 1 0 1)))
 ;;   (gl:rect 0.7 0 1.0 0.3))
 
-(defmethod authorize-move ((square square) move-type target)
+(defmethod authorize-move ((square abstract-square) move-type target)
   (multiple-value-bind (state delta)
       (case move-type
         (:fall  (values :falling  +0))
@@ -119,7 +121,7 @@
           (list target (+ (angle square) delta)))
     (setf (state square) state)))
 
-(defmethod update ((square square))
+(defmethod update ((square abstract-square))
   (when (next-move square)
     (destructuring-bind (target angle) (next-move square)
       (setf (next-move square) nil)
@@ -128,3 +130,4 @@
       (setf (state square) :staying)
       (setf (offset-y square) 0)
       (setf (angle-offset square) 0))))
+

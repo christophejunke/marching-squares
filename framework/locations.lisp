@@ -34,6 +34,19 @@
 (defun add-object-at-location% (object)
   (add-object-at-location%% (location object) object))
 
+(defun forced-remove (array row col object)
+  (let ((value (aref array row col)))
+    (when (and (consp value) (not (rest value)))
+      (setf value (first value)))
+    (cond
+      ((null value))
+      ((consp value)
+       (let ((pruned (delete object (aref array row col))))
+         (setf (aref array row col)
+               (if (rest pruned) pruned (first pruned)))))
+      ((eql value object)
+       (setf (aref array row col) nil)))))
+
 (defun leave-current-location% (object)
   (when (location object)
     (with-accessors ((level level)
@@ -50,7 +63,7 @@
            (let ((pruned (delete object (aref array row col))))
              (setf (aref array row col)
                    (if (rest pruned) pruned (first pruned)))))
-          ((eq value object) (setf (aref array row col) nil))
+          ((eql value object) (setf (aref array row col) nil))
           (t (error "Object ~a not found at location ~a"
                     object
                     (location object))))))))

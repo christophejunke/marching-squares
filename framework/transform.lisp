@@ -1,10 +1,18 @@
 (in-package :marching-squares)
 
-(defclass transformable () ())
+(defclass transformable () ()
+  (:documentation
+   "Mixin for objects that are displayed in a modified model view."))
 
-(defgeneric transform-model-view (transformable)
-  (:method (_)))
-
+(bricabrac.docstrings:with-realigned-docstring (t)
+  (defgeneric transform-model-view (transformable)
+    (:method (_))
+    (:documentation
+     "Called in a context where the current :modelview matrix is pushed.~% The
+      function is called before drawing a transformable object to change the
+      temporary matrix. Specialize by performing translations, scale,
+      rotations, etc.")))
+ 
 (defmacro with-location-transform ((&key
                                       (push t)
                                       (row nil rp)
@@ -14,7 +22,7 @@
                (eql cp (not lp)))
           ()
           "This macro expects either both :ROW and :COL arguments,~
-            or only a :LOCATION argument.")
+           or only a :LOCATION argument.")
   (flet ((row-col-code (row col)
            (if push
                `(gl:with-pushed-matrix* (:modelview)
@@ -26,7 +34,7 @@
                                             `(col ,location))))))
 
 (defmethod display :around ((this transformable))
-    (gl:with-pushed-matrix* (:modelview)
-      (transform-model-view this)
-      (call-next-method)))
+  (gl:with-pushed-matrix* (:modelview)
+    (transform-model-view this)
+    (call-next-method)))
 

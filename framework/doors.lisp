@@ -33,11 +33,12 @@
                             global-trigger)
   ())
 
-(defun make-door (name &key location pressp)
+(defun make-door (name &key location pressp (state :close))
   (make-instance (if pressp 'press-door 'door)
                  :group-class (if pressp 'press-door-group 'door-group)
                  :name name
-                 :location location))
+                 :location location
+                 :state state))
 
 (defmethod trigger ((door door))
   (setf (state door)
@@ -97,9 +98,10 @@
 (defmethod display ((door door))
   (let ((ratio (openness-ratio (openness door))))
     (gl:color 0 0 0 1)
-    (draw 0 0.0 0.25 ratio)
-    (set-color #'palette-foreground)
-    (draw 0.15 0.05 0.15 ratio)))
+    (draw 0 0.0 0.45 ratio)
+    (gl:color 1 1 0 1)
+    ;; (set-color #'palette-foreground)
+    (draw 0.15 0.15 0.10 ratio)))
 
 (defmethod microstep ((door door) ratio)
   (setf (openness door)

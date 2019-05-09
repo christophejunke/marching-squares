@@ -28,12 +28,16 @@
   (when (group button)
     (cond
       ((triggerable (group button))
-       (gl:color 0 1 0 0.9)
-       (loop for y from 0.50 upto 0.8 by 1/10
-             do (gl:rect 0.25 y 0.75 (+ y 1/20))))
+       (gl:color 1 1 0 0.9)
+       
+       ;; (loop for y from 1/2 upto 4/5 by 1/10
+       ;;       do (gl:rect 1/4 y 3/4 (+ y 1/20)))
+       (gl:rect 0.25 0.55 0.75 0.75)
+       )
       (t 
-       (gl:color 1 0 0 0.9)
-       (gl:rect 0.25 0.55 0.75 0.75)))))
+       (gl:color 1 1 0 0.2)
+       (gl:rect 0.25 0.55 0.75 0.75)
+       ))))
 
 (defmethod display ((button press-button))
   (call-next-method)

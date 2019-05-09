@@ -1,5 +1,5 @@
 (defsystem :marching-squares
-  :depends-on (:trivia :alexandria :sdl2 :sdl2-ttf :cl-opengl)
+  :depends-on (:trivia :alexandria :sdl2 :sdl2-ttf :cl-opengl :bricabrac)
   :components ((:file "packages")
                (:module
                 "framework"

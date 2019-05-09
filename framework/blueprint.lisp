@@ -21,5 +21,7 @@
 
 (defclass level-blueprint (has-dimensions)
   ((grid :accessor grid :initarg :grid)
-   (bindings :accessor bindings :initarg :bindings)))
+   (bindings :accessor bindings :initarg :bindings)
+   (class :accessor level-class :initarg :class :initform 'level)
+   (start-hook :accessor start-hook :initarg :on-start :initform nil)))
 

@@ -24,11 +24,13 @@
       (display head))))
 
 (defclass solid () ())
+(defclass immaterial () ())
 
 (defgeneric allow-move-p (object target)
   (:method (item (empty null)) nil)
   (:method (item (solid solid)) nil)
   (:method (any (g garbage)) t)
+  (:method (any (_ immaterial)) t)
   (:method (any anywhere) nil)
   (:method (mobile (multi sequence))
     (every (lambda (item)

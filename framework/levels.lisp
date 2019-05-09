@@ -62,15 +62,21 @@
 (defmethod build ((blueprint level-blueprint) game)
   (with-accessors ((height height)
                    (width width)
-                   (rows grid))
+                   (rows grid)
+                   (class level-class))
       blueprint
     (let* ((dimensions (list height width))
            (array (make-array dimensions :initial-element nil))
-           (level (make-instance 'level
+           (level (make-instance class
                                  :dimensions dimensions
                                  :game game
                                  :array array
                                  :blueprint blueprint)))
+      (dolist (entry (remove t
+                             (bindings blueprint)
+                             :test-not #'eql
+                             :key #'car))
+        (incorporate game (build (cdr entry) game)))
       (prog1 level
         (dotimes (row height)
           (dotimes (col width)
@@ -78,7 +84,9 @@
               (incorporate location
                            (build (ignore-errors
                                    (aref (aref rows row) col))
-                                  location)))))))))
+                                  location)))))
+        (when-let ((hook (start-hook blueprint)))
+          (funcall hook))))))
 
 (defmethod build ((item character) (location loc))
   (flet ((retrieve-from (alist)
