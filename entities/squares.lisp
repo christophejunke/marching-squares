@@ -20,7 +20,7 @@
 (defclass square (abstract-square) ())
 
 (defun activate-square (location &optional (square nil sp))
-  (unless (and (not sp) (some #'squarep (objects-at location)))
+  (unless (or sp (some #'squarep (objects-at location)))
     (incorporate location
                  (or square (make-instance 'square :location location)))))
 

@@ -22,20 +22,29 @@
              :initform 0)))
 
 (defclass door-group (invisible
-                      and-group
                       active-object
                       has-name)
   ())
 
+(defclass and-door-group (and-group door-group) ())
+(defclass or-door-group (or-group door-group) ())
+
 (defclass press-door (door button) ())
 
-(defclass press-door-group (door-group
-                            global-trigger)
-  ())
+(defclass press-door-group (door-group global-trigger) ())
 
-(defun make-door (name &key location pressp (state :close))
+(defclass and-press-door-group (and-door-group press-door-group) ())
+(defclass or-press-door-group (or-door-group press-door-group) ())
+
+(defun make-door (name &key location pressp (state :close) (combine :and))
   (make-instance (if pressp 'press-door 'door)
-                 :group-class (if pressp 'press-door-group 'door-group)
+                 :group-class (if pressp
+                                  (ecase combine
+                                    (:and 'and-press-door-group)
+                                    (:or 'or-press-door-group))
+                                  (ecase combine
+                                    (:and 'and-door-group)
+                                    (:or 'or-door-group)))
                  :name name
                  :location location
                  :state state))

@@ -57,14 +57,17 @@
     (setf (group object) group)
     (group-add object group)))
 
-(defclass button-group (and-group
-                        active-object
+
+(defclass button-group (active-object
                         has-name
                         invisible
                         lambda-trigger)
   ())
 
-(defclass press-button-group (latch button-group)
+(defclass and-button-group (and-group button-group) ())
+(defclass or-button-group (or-group button-group) ())
+
+(defclass press-button-group (latch and-button-group)
   ())
 
 (defmethod update ((group press-button-group))
@@ -74,10 +77,13 @@
       (setf (firedp group) nil)
       (return))))
 
-(defun make-button (name location action &key latchp)
+(defun make-button (name location action &key latchp group-class)
   (make-instance (if latchp 'press-button 'button)
                  :name name
-                 :group-class (if latchp 'press-button-group 'button-group)
+                 :group-class (if latchp
+                                  'press-button-group
+                                  (or group-class
+                                      'and-button-group))
                  :location location
                  :action action))
 

@@ -180,7 +180,10 @@
 
 (defun parse-action (expression level)
   (match expression
-    ((list :trigger name) (lambda () (trigger-by-name name level)))))
+    ((list* :trigger names)
+     (lambda ()
+       (dolist (name names)
+         (trigger-by-name name level))))))
 
 (defclass invisible-blocker (has-location
                              immaterial
@@ -202,10 +205,22 @@
                     (parse-action action (level location))
                     :latchp t))
       ((list :button group action)
-       (make-button group location
-                    (parse-action action (level location))))
+       (etypecase group
+         (cons
+          (destructuring-bind (type group) group
+            (make-button group
+                         location
+                         (parse-action action (level location))
+                         :group-class (ecase type
+                                        (:or 'or-button-group)
+                                        (:and 'and-button-group)))))
+         (symbol (make-button group
+                              location
+                              (parse-action action (level location))))))
       ((list :start :inverted) (new 'inverted-start-trigger))
       ((list :and-group group-name expression)
+       (build expression (named-and-group group-name)))
+      ((list :or-group group-name expression)
        (build expression (named-and-group group-name)))
       ((list* :gate name options)
        (apply #'make-door name :location location :pressp nil options)) 

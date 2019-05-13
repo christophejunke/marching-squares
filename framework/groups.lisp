@@ -7,10 +7,11 @@
           :initform (make-group-vector% nil))))
 
 (defclass or-group (group) ())
-(defclass and-group (group trigger) ())
+(defclass and-group (group) ())
 
 (defclass named-group (has-name group) ())
 (defclass named-and-group (and-group named-group) ())
+(defclass named-or-group (or-group named-group) ())
 
 (defun make-group-vector% (elements)
   (let ((size (length elements)))
@@ -23,7 +24,7 @@
 
 (defun group-add (object group &aux (vec (items group)))
   (if (find object vec)
-      (warn "Object ~a already exists in group ~a" object group)
+      (cerror "OK" "Object ~a already exists in group ~a" object group)
       (vector-push-extend object vec)))
 
 (defun group-clear (group)
@@ -74,6 +75,9 @@
 (defun named-and-group (name)
   (make-instance 'named-and-group :name name))
 
+(defun named-or-group (name)
+  (make-instance 'named-or-group :name name))
+
 (defun group-p (item)
   (typep item 'group))
 
@@ -85,8 +89,12 @@
 ;;   (group-purge group))
 
 (defmethod triggerable ((group and-group))
-  "All must be triggerable before we call TRIGGER"
+  "All members must be triggerable before we call TRIGGER"
   (every #'triggerable (items group)))
+
+(defmethod triggerable ((group or-group))
+  "Any element need be triggerable to call TRIGGER"
+  (some #'triggerable (items group)))
 
 (defmethod trigger ((group group))
   (dogroup (item group)
