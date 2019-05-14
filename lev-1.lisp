@@ -64,6 +64,7 @@
                (#\? . (:class/loc level-1/check-alternative-solution))
                (t . (:class level-1/shake-destroy)))))
 
+(setf (level-blueprint *game*) *intro-level*)
 
 (defclass wall-square (abstract-square)
   ((falling :accessor falling :initform nil)))
@@ -118,8 +119,6 @@
           (dy (random-around 0 (y-magnitude s))))
       (gl:translate dx dy 0))))
 
-
-
 (defun detach% (array layer level row col)
   (let* ((loc (loc level row col))
          (ws (make-instance 'wall-square :location loc)))
@@ -134,7 +133,6 @@
     (setf (y-magnitude level) y)
     (setf (duration level) (abs d))
     (setf (shakep level) t)))
-
 
 (defclass level-1/check-alternative-solution
     (global-trigger has-location oneshot)

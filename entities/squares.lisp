@@ -19,10 +19,11 @@
 
 (defclass square (abstract-square) ())
 
-(defun activate-square (location &optional (square nil sp))
-  (unless (or sp (some #'squarep (objects-at location)))
+(defun activate-square (location &optional (square nil))
+  (unless (some #'squarep (objects-at location))
     (incorporate location
-                 (or square (make-instance 'square :location location)))))
+                 (or square (make-instance 'square
+                                           :location location)))))
 
 (defmethod release ((level level) (square square))
   (setf (blockedp square) nil)

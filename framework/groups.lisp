@@ -1,18 +1,5 @@
 (in-package :marching-squares)
 
-(defclass group ()
-  ((items :reader items
-          :writer (setf items%)
-          :initarg :items
-          :initform (make-group-vector% nil))))
-
-(defclass or-group (group) ())
-(defclass and-group (group) ())
-
-(defclass named-group (has-name group) ())
-(defclass named-and-group (and-group named-group) ())
-(defclass named-or-group (or-group named-group) ())
-
 (defun make-group-vector% (elements)
   (let ((size (length elements)))
     (if (plusp size)
@@ -21,6 +8,18 @@
                     :fill-pointer size
                     :adjustable t)
         (make-array 32 :fill-pointer 0 :adjustable t))))
+
+(defclass group ()
+  ((items :reader items
+          :writer (setf items%)
+          :initarg :items
+          :initform (make-group-vector% nil))
+   (combination :reader group-combination
+                :writer (setf group-combination%)
+                :initarg :combination
+                :initform :and)))
+
+(defclass named-group (has-name group) ())
 
 (defun group-add (object group &aux (vec (items group)))
   (if (find object vec)
@@ -34,14 +33,11 @@
   (setf (items% group)
         (delete-if #'garbagep (items group))))
 
-(defun make-group (&optional items combination)
-  (let ((class (find-class
-                (case combination
-                  (:and 'and-group)
-                  (:or 'or-group)
-                  ((nil) 'group)
-                  (t combination)))))
-    (make-instance class :items (make-group-vector% items))))
+(defun make-group (&optional items (combination :and))
+  (make-instance 'group
+                 :items (make-group-vector% items)
+                 :combination (ecase combination
+                                ((:and :or) combination))))
 
 (defmacro unless-garbagep (item &body body)
   `(unless (garbagep ,item)
@@ -72,12 +68,6 @@
          (unless-garbagep ,var
            ,@body)))))
 
-(defun named-and-group (name)
-  (make-instance 'named-and-group :name name))
-
-(defun named-or-group (name)
-  (make-instance 'named-or-group :name name))
-
 (defun group-p (item)
   (typep item 'group))
 
@@ -88,13 +78,12 @@
 ;; (defmethod update :before ((group group))
 ;;   (group-purge group))
 
-(defmethod triggerable ((group and-group))
-  "All members must be triggerable before we call TRIGGER"
-  (every #'triggerable (items group)))
-
-(defmethod triggerable ((group or-group))
-  "Any element need be triggerable to call TRIGGER"
-  (some #'triggerable (items group)))
+(defmethod triggerable ((group group))
+  (funcall (ecase (group-combination group)
+             (:and #'every)
+             (:or #'some))
+           #'triggerable
+           (items group)))
 
 (defmethod trigger ((group group))
   (dogroup (item group)
@@ -106,11 +95,24 @@
            (group (first (resolve name level))))
       (unless group
         (setf group (apply #'make-instance
-                           (or class 'and-group)
+                           class
                            :name name
                            :allow-other-keys t
                            args))
         (incorporate location group))
       group)))
 
-
+(defmethod initialize-instance :after ((object has-group)
+                                       &key
+                                         group-class
+                                         combination
+                                         name
+                                         action
+                                         location &allow-other-keys)
+  (let ((group (ensure-group name
+                             group-class
+                             location
+                             :action action
+                             :combination combination)))
+    (setf (group object) group)
+    (group-add object group)))

@@ -47,25 +47,11 @@
     (gl:color 1 1 0 0.9)
     (gl:rect 0.25 0.55 0.75 0.75)))
 
-(defmethod initialize-instance :after
-    ((object has-group) &key
-                          group-class
-                          name
-                          action
-                          location &allow-other-keys)
-  (let ((group (ensure-group name group-class location :action action)))
-    (setf (group object) group)
-    (group-add object group)))
-
-
 (defclass button-group (active-object
                         has-name
                         invisible
                         lambda-trigger)
   ())
-
-(defclass and-button-group (and-group button-group) ())
-(defclass or-button-group (or-group button-group) ())
 
 (defclass press-button-group (latch and-button-group)
   ())
@@ -77,13 +63,13 @@
       (setf (firedp group) nil)
       (return))))
 
-(defun make-button (name location action &key latchp group-class)
+(defun make-button (name location action &key latchp (combine :and))
   (make-instance (if latchp 'press-button 'button)
                  :name name
                  :group-class (if latchp
                                   'press-button-group
-                                  (or group-class
-                                      'and-button-group))
+                                  'button-group)
+                 :combination combine
                  :location location
                  :action action))
 
