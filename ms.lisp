@@ -116,10 +116,12 @@
   (activate-square (location trigger)))
 
 (defmethod trigger ((trigger inverted-start-trigger))
-  (activate-square (location trigger)
-                   (make-instance 'square
-                                  :location (location trigger)
-                                  :inverted t)))
+  (let ((square (make-instance 'square
+                               :location (location trigger)
+                               :inverted t)))
+    (incorporate (location trigger) square)))
+
+(define-symbol-macro *level* (game-level *game*))
 
 ;;;;;
 ;;;;;
@@ -195,7 +197,10 @@
 ;; FIXME: not all in a single function
 (defmethod build (expression location)
   (flet ((new (class &rest args)
-           (apply #'make-instance class :location location args)))
+           (apply #'make-instance
+                  class
+                  :location location
+                  args)))
     (match expression
       ((eq nil) nil)
       ((list :spawn name) (new 'spawn-trigger :name name))

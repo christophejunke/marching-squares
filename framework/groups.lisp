@@ -19,6 +19,15 @@
                 :initarg :combination
                 :initform :and)))
 
+(defmethod print-object ((group group) stream)
+  (print-unreadable-object (group stream :type nil :identity nil)
+    (format stream
+            "~@<~2I~a ~@[[~a] ~]~@:_~S~:>"
+           (class-name (class-of group))
+            (and (typep group 'has-name)
+                 (name group))
+            (items group))))
+
 (defclass named-group (has-name group) ())
 
 (defun group-add (object group &aux (vec (items group)))

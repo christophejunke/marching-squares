@@ -20,6 +20,9 @@
 
 (defclass square (abstract-square) ())
 
+(defun squarep (object)
+  (typep object 'square))
+
 (defmethod is-pressed-by ((button button) (square abstract-square))
   (member (state square) '(:staying :falling)))
 
@@ -39,9 +42,6 @@
           (:left :right)
           (:right :left)))
   (call-next-method))
-
-(defun squarep (object)
-  (typep object 'square))
 
 ;; TODO origin at square center (simplifies)
 (defmethod transform-model-view ((square abstract-square))
