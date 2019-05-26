@@ -119,3 +119,10 @@
   (gl:clear :color-buffer :depth-buffer)
   (map () #'display (layers level)))
 
+(defun map-level-items (function level)
+  (let ((array (level-array level)))
+    (destructuring-bind (rows cols) (array-dimensions array)
+      (dotimes (row rows)
+        (dotimes (col cols)
+          (let ((location (loc level row col)))
+            (funcall function location (objects-at location))))))))

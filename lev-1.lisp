@@ -136,6 +136,13 @@
         (build ws loc)
         (activate-square loc ws)))))
 
+(defun detach-wall (level row col)
+  (detach% (level-array level)
+           (layer-grid (layer level :background))
+           level
+           row
+           col))
+
 (defun shake (x y d)
   (let ((level (game-level *game*)))
     (setf (x-magnitude level) x)

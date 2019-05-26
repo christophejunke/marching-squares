@@ -117,7 +117,7 @@
                  )
          :on-start (lambda (level) (pick-palette level :yellow))
          :name "Chicken"
-         :palettes '((:yellow (:background :blend )))
+         :palettes '((:yellow (:background 0.6 0.5 0.0 1.0 )))
          :bindings `((#\b . (:trigger :release x))
                      (#\B . (:blocked-square x))
                      (#\e . (:trigger :release y))
@@ -195,6 +195,7 @@
            "                                 ")
    :on-start #'pick-palette
    :palettes `((t . ((:wall 0 0 0.2 .5)
+                     (:blocked-square 0.3 1 0.3 0.5)
                      (:background 0.3 0.5 0.3 1)
                      (:foreground 0 1 0 1)
                      (:door 0 1 0 0.35)))) 
@@ -228,7 +229,8 @@
                (#\~ . (:gate gate-3))
                (#\^ . (:gate gate-4))
                (#\: . (:gate gate-5))
-               (#\X . (:trigger :lose)))))
+               ;; (#\X . (:trigger :lose))
+               )))
 
 (defun button-intro-level ()
   (make-instance
