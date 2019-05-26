@@ -58,8 +58,8 @@
   (group-add trigger (triggers root)))
 
 (defmethod display ((trigger trigger))
-  (gl:color 0 0 0 0.3)
-  (gl:rect 0.4 0.4 0.6 0.6))
+  (color :wall)
+  (gl:rect 0.2 0.2 0.8 0.8))
 
 (defmethod allow-move-p (mobile (trigger trigger)) t)
 

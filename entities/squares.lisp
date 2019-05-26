@@ -10,14 +10,18 @@
                            has-angle
                            blockable
                            mobile
+                           solid
                            transformable)
   ((pivot-x :initform 0 :accessor pivot-x)
    (pivot-y :initform 0 :accessor pivot-y)
    (offset-y :initform 0 :accessor offset-y)
-   (state :accessor state :initform nil))
+   (state :accessor state :initform :staying))
   (:default-initargs :name 'square))
 
 (defclass square (abstract-square) ())
+
+(defmethod is-pressed-by ((button button) (square abstract-square))
+  (member (state square) '(:staying :falling)))
 
 (defun activate-square (location &optional (square nil))
   (unless (some #'squarep (objects-at location))
@@ -82,23 +86,21 @@
 (defmethod display ((square square))
   (cond
     ((blockedp square)
-     (colrect #'palette-wall
-              0 0 1 1.1)
-     (colrect #'palette-blocked-square
-              0.1 0.1 0.9 0.9))
+     (colrect :wall 0 0 1 1.1)
+     (colrect :blocked-square 0.1 0.1 0.9 0.9))
     ((invertedp square)
-     (set-color #'palette-wall)
+     (color :wall)
      (gl:rect 0 0 1 1)
-     (set-color #'palette-square)
+     (color :square)
      (gl:rect 0.10 0.10 0.9 0.9)
-     (set-color #'palette-wall)
-     (gl:rect 0.15 0.15 0.85 0.85)
-     (set-color #'palette-inverted-square)
-     (gl:rect 0.25 0.25 0.75 0.75))
+     ;; (color :wall)
+     ;; (gl:rect 0.15 0.15 0.85 0.85)
+     (color :inverted-square)
+     (gl:rect 0.30 0.30 0.70 0.70))
     (t
-     (set-color #'palette-wall)
+     (color :wall)
      (gl:rect 0 0 1 1)
-     (set-color #'palette-square)
+     (color :square)
      (gl:rect 0.1 0.1 0.9 0.9))))
 
 ;; debug

@@ -18,3 +18,12 @@
 (defmethod reinitialize-instance :after
     ((object namespace) &key &allow-other-keys)
   (clrhash (index object)))
+
+(defmethod print-object ((object has-name) stream)
+  (let ((as-string
+          (with-output-to-string (out)
+            (call-next-method object out))))
+    (princ (ppcre:regex-replace '(:sequence :start-anchor #\# #\<)
+                                as-string
+                                (format nil "#<[~a] " (name object)))
+           stream)))

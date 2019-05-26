@@ -1,7 +1,7 @@
 (in-package :marching-squares)
 
 (deftype door-state ()
-  '(member :close :open :waiting :closing :opening))
+  '(member :close :open :closing :opening))
 
 (deftype openness ()
   '(real 0 1))
@@ -28,7 +28,6 @@
   ())
 
 (defclass press-door (door button) ())
-
 (defclass press-door-group (door-group global-trigger) ())
 
 (defun make-door (name &key location pressp (state :close) (combine :and))
@@ -43,38 +42,39 @@
   (setf (state door)
         (case (state door)
           (:open :open)
-          (:waiting :open)
+          (:closing :open)
           (t :opening))))
+
+(defmethod post-move-update ((door press-door))
+  (when (and (eq (state door) :open)
+             (not (triggerable door)))
+    (setf (state door) :closing)))
 
 (defmethod update ((door door))
   (call-next-method)
   (setf (state door)
         (case (state door)
           (:opening :open)
+          (:open :closing)
           (:closing :close)
-          (:open :waiting)
-          (:waiting :closing)
           (t (state door)))))
 
 (defmethod triggerable ((door press-door))
-  (or (pressedp door) (call-next-method)))
+  (or (pressedp door)
+      (find-if #'solidp
+               (remove door (objects-at (location door))))))
 
-(defun square-direction-p (location direction)
-  (destructuring-bind (target) (neighbours location direction)
-    (find-if #'squarep (objects-at target))))
-
-(defmethod update ((door press-door))
-  (case (state door)
-    (:waiting (if (square-direction-p (location door) :north)
-                  (setf (state door) :open)
-                  (call-next-method)))
-    (t (call-next-method))))
+(defmethod trigger ((door press-door))
+  ;; (when (find-if #'solidp (remove door (objects-at (location door))))
+  ;;   (setf (state door) :open)
+  ;;   (return-from trigger))
+  (call-next-method))
 
 (declaim (inline openness-ratio))
 (defun openness-ratio (openness)
   (float (/ (- 1 openness) 2)))
 
-(defun draw (dx y height ratio)
+(defun draw-door (dx y height ratio)
   (let ((min-x dx)
         (max-x (max dx (- ratio dx)))
         (min-y y)
@@ -85,30 +85,28 @@
 (defmethod display ((door press-door))
   (let ((ratio (openness-ratio (openness door))))
     (prog1 ratio
-      (set-color #'palette-wall)
-      ;; (draw 0 0 0.3)
-      (draw 0 0 0.3 ratio)
-      (set-color (if (pressedp door)
-                 #'palette-flash/feedback
-                 #'palette-foreground))
-      ;; (draw  0.05 0.1 0.05)
-      (draw  0.05 0 0.15 ratio))))
+      (color :wall)
+      (draw-door 0 0 0.3 ratio)
+      (color (if (pressedp door)
+                 :flash/feedback
+                 :foreground))
+      (draw-door 0.05 0 0.15 ratio))))
 
 (defmethod display ((door door))
   (let ((ratio (openness-ratio (openness door))))
-    (gl:color 0 0 0 1)
-    (draw 0 0.0 0.45 ratio)
-    (gl:color 1 1 0 1)
-    ;; (set-color #'palette-foreground)
-    (draw 0.15 0.15 0.10 ratio)))
+    (color :wall)
+    (draw-door 0 0.0 0.45 ratio)
+    (color :door)
+    (draw-door 0.15 0.15 0.10 ratio)))
 
 (defmethod microstep ((door door) ratio)
   (setf (openness door)
         (case (state door)
-          ((:open :waiting) 1)
+          (:open 1)
           (:close 0)
           (:opening ratio)
           (:closing (- 1 ratio)))))
 
+;; The :opening case is deliberately left out.
 (defmethod allow-move-p (object (door door))
-  (member (state door) '(:open :waiting)))
+  (eq (state door) :open))

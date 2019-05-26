@@ -126,30 +126,5 @@
               (display cell))))))))
 
 (defun colrect (color x y w h)
-  (set-color color)
+  (color color)
   (gl:rect x y w h))
-
-;; TODO change how palette works
-(defstruct palette
-  background
-  foreground
-
-  wall
-  magnetic-wall
-
-  inverter
-  constrainer
-
-  square
-  blocked-square
-  inverted-square
-  constrained-square
-
-  flash/feedback
-
-  alpha
-  beta
-  gamma
-  delta
-  epsilon)
-

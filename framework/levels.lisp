@@ -4,6 +4,7 @@
                  has-dimensions
                  has-name
                  has-location-cache
+                 has-palettes
                  layer-stack)
   ((array :accessor level-array :initarg :array)
    (blueprint :accessor blueprint :initarg :blueprint)
@@ -21,7 +22,8 @@
                                ((:east      :e)  +1  0)
                                ((:southwest :sw) -1 +1)
                                ((:south     :s)   0 +1)
-                               ((:southeast :se) +1 +1))
+                               ((:southeast :se) +1 +1)
+                               ((:center    :c)   0  0))
       do (dolist (symbol symbols)
            (setf (get symbol 'direction) (cons dx dy))))
 
@@ -59,10 +61,17 @@
   (let ((*incorporate-location* location))
     (incorporate (level location) object)))
 
+(defun augment-palettes (palettes)
+  (loop
+    for (key . list) in palettes
+    collect (cons key (append list *palette*))))
+
 (defmethod build ((blueprint level-blueprint) game)
   (with-accessors ((height height)
                    (width width)
                    (rows grid)
+                   (palettes blueprint-palettes)
+                   (triggers blueprint-triggers)
                    (class level-class))
       blueprint
     (let* ((dimensions (list height width))
@@ -70,13 +79,13 @@
            (level (make-instance class
                                  :dimensions dimensions
                                  :game game
+                                 :name (name blueprint)
                                  :array array
-                                 :blueprint blueprint)))
-      (dolist (entry (remove t
-                             (bindings blueprint)
-                             :test-not #'eql
-                             :key #'car))
-        (incorporate game (build (cdr entry) game)))
+                                 :blueprint blueprint
+                                 :current-palette *palette*
+                                 :palettes (augment-palettes palettes))))
+      (dolist (entry triggers)
+        (incorporate game (build entry game)))
       (prog1 level
         (dotimes (row height)
           (dotimes (col width)
@@ -86,7 +95,8 @@
                                    (aref (aref rows row) col))
                                   location)))))
         (when-let ((hook (start-hook blueprint)))
-          (funcall hook))))))
+          (funcall hook level))
+        (set-title (format nil "~a ― ~a" (title game) (name level)))))))
 
 (defmethod build ((item character) (location loc))
   (flet ((retrieve-from (alist)
@@ -105,5 +115,7 @@
       (microstep (row-major-aref array i) ratio))))
 
 (defmethod display ((level level))
+  (apply #'gl:clear-color (eval-color :background))
+  (gl:clear :color-buffer :depth-buffer)
   (map () #'display (layers level)))
 

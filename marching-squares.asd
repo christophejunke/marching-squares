@@ -1,6 +1,7 @@
 (defsystem :marching-squares
   :depends-on (:trivia :alexandria :sdl2 :sdl2-ttf :cl-opengl :bricabrac)
   :components ((:file "packages")
+               (:file "utils")
                (:module
                 "framework"
                 :depends-on ("packages")
@@ -16,6 +17,7 @@
                              (:file "mobiles")
                              (:file "release")
                              (:file "transform")
+                             (:file "palette")
                              (:file "display")
                              (:file "active")
                              (:file "buttons")
@@ -24,6 +26,8 @@
                (:module
                 "entities"
                 :components ((:file "squares")))
-               (:file "ms"))
+
+               (:file "ms")
+               (:file "lev-1"))
   :author "Christophe Junke <junke.christophe@gmail.com>"
   :license "MIT")

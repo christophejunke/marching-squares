@@ -1,8 +1,7 @@
 (in-package :marching-squares)
 
 (defclass mobile (has-location
-                  has-layer
-                  active-object)
+                  has-layer)
   ((next-move :accessor next-move :initform nil))
   (:default-initargs :layer :mobiles))
 
@@ -91,3 +90,9 @@
       (dogroup (mobile group)
         (gather-intent arbiter mobile)))))
 
+(defgeneric post-move-update (object)
+  (:documentation "Update step after all moves are computed.")
+  (:method (_))
+  (:method ((g group))
+    (dogroup (x g)
+      (post-move-update x))))

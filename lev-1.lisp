@@ -1,8 +1,9 @@
 (in-package :marching-squares)
 
-(defparameter *intro-level*
+(defun intro-level ()
   (make-instance
    'level-blueprint
+   :name "Tutorial"
    :class 'shakeable-level
    :width 31
    :height 31
@@ -37,13 +38,15 @@
            "/       /        #    /       /   "
            " ####H###^#H#^#####^####H##### ## "
            " ########@###@#####@########## ## "
-           "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-   :on-start (lambda ()
-               (setf (palette-background (palette *game*))
-                     '(0.1 0.2 0.3 1.0 ))
-               ;; (setf (palette-background (palette *game*))
-               ;;       '(0.9 0.9 0.9 1.0 ))
-               )
+           "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+
+   :palettes (let ((common '((:inverted-square 0.0 0.0 0.0 1.0))))
+               `((:blue . ((:background 0.3 0.5 0.6 1.0)
+                           ,@common))
+                 (:red . ((:background 0.6 0.3 0.3 1)
+                          ,@common))))
+   :on-start (lambda (level) (pick-palette level :blue))
+   :triggers '((:class level-1/shake-destroy))
    :bindings '((#\b . (:trigger :release x))
                (#\B . (:blocked-square x))
                (#\e . (:trigger :release y))
@@ -61,19 +64,24 @@
                (#\~ . (:door door-3))
                (#\^ . (:door door-4))
                (#\: . (:door door-5))
-               (#\? . (:class/loc level-1/check-alternative-solution))
-               (t . (:class level-1/shake-destroy)))))
+               (#\? . (:class/loc level-1/check-alternative-solution)))))
 
-(setf (level-blueprint *game*) *intro-level*)
+;; (setf (level-blueprint *game*) 'intro-level)
+
+;; (setf (cdr (assoc :inverted-square (current-palette (game-level *game*))))
+;;       '(0.0 0.0 0.0 1.0))
 
 (defclass wall-square (abstract-square)
   ((falling :accessor falling :initform nil)))
+
+(defmethod is-pressed-by ((door press-door) (wall wall-square))
+  nil)
 
 (defmethod display ((square wall-square))
   (display :wall))
 
 (defmethod display ((blocker invisible-blocker))
-  (set-color #'palette-inverter :alpha 1)
+  (set-color :inverter :alpha 1)
   (gl:translate 0.5 0.5 0.5)
   (csq 0.15))
 
@@ -120,12 +128,13 @@
       (gl:translate dx dy 0))))
 
 (defun detach% (array layer level row col)
-  (let* ((loc (loc level row col))
-         (ws (make-instance 'wall-square :location loc)))
-    (forced-remove array row col :wall)
-    (forced-remove layer row col :wall)
-    (build ws loc)
-    (activate-square loc ws)))
+  (let ((loc (loc level row col)))
+    (when (find :wall (objects-at loc))
+      (let ((ws (make-instance 'wall-square :location loc)))
+        (forced-remove array row col :wall)
+        (forced-remove layer row col :wall)
+        (build ws loc)
+        (activate-square loc ws)))))
 
 (defun shake (x y d)
   (let ((level (game-level *game*)))
@@ -135,7 +144,7 @@
     (setf (shakep level) t)))
 
 (defclass level-1/check-alternative-solution
-    (global-trigger has-location oneshot)
+    (global-trigger has-location oneshot invisible)
   ())
 
 (defmethod triggerable ((trigger level-1/check-alternative-solution))
@@ -161,8 +170,7 @@
        (setf (y-magnitude level) 0.2)
        (setf (duration level) 2)
        (setf (shakep level) t)
-       (setf (palette-background (palette *game*))
-             (list 0.3 0.1 0.1 1))
+       (pick-palette level :red)
        (flet ((detach (row col) (detach% array layer level row col)))
          (loop
            (decf iter)

@@ -2,12 +2,13 @@
 
 (defparameter *game*
   (make-instance 'marching-squares
-                 :level-blueprint *intro-level*))
+                 :level-blueprint 'intro-level))
 
-(setf (level-blueprint *game*) *intro-level*)
+(setf (level-blueprint *game*) 'intro-level)
 (setf (level-blueprint *game*) *chicken-level*)
-(setf (level-blueprint *game*) *button-intro-level*)
+(setf (level-blueprint *game*) 'button-intro-level)
 (setf (level-blueprint *game*) *ramping-level*)
+(setf (level-blueprint *game*) 'level/lateral-thinking)
 
 ;;!!!!
 (setf (palette-inverted-square (palette *game*))
@@ -25,8 +26,10 @@
 ;;  (first (objects-at (loc (game-level *game*) 28 21)))
 ;;  (first (objects-at (loc (game-level *game*) 28 22))))
 
-(setf (palette-background (palette *game*))
-      '(0.1 0.2 0.3 1.0 ))
+(setf (palette-background (palette *game*)) '(1 0.9 0.9 1.0 )
+      (palette-wall (palette *game*)) '(0.3 0 0 0.9))
+
+(setf (palette-wall (palette *game*)) '(0 0 0 1))
 
 (shake 0.1 0 3)
 
@@ -112,6 +115,9 @@
                  "                                   "
                  "                                   "
                  )
+         :on-start (lambda (level) (pick-palette level :yellow))
+         :name "Chicken"
+         :palettes '((:yellow (:background :blend )))
          :bindings `((#\b . (:trigger :release x))
                      (#\B . (:blocked-square x))
                      (#\e . (:trigger :release y))
@@ -146,84 +152,152 @@
                      (#\^ . (:gate gate-4))
                      (#\: . (:gate gate-5))))))
 
+(setf (level-blueprint *game*) 'level/lateral-thinking)
 
-(defparameter *button-intro-level*
-  (setf (level-blueprint *game*)
-        (make-instance
-         'level-blueprint
-         :width 33
-         :height 33
-         :grid #("                                "
-                 " # V          #   #      V   #  "
-                 "  ####Z## ##### # #####~#####   "
-                 "     ###                         "
-                 "                                 "
-                 "       ######L######L###        "
-                 "       #    ###                 "
-                 " ###V    ##              #####  "
-                 " ###:########## # ############  "
-                 "              #-#-############  "
-                 " ###            #          B##  "
-                 " ###            #               "
-                 " ###-#####^##########S#####     "
-                 " ###      b                     "
-                 " ###                            "
-                 " #############S#########   #    "
-                 " ###########E#                  "
-                 "                           #    "
-                 "             #=#=#=#=#######    "
-                 "             # #e# #            "
-                 "             # # # #            "
-                 "           ### #+# ###_#####    "
-                 "                 #              "
-                 "              8  #8             "
-                 " ###8########### ####>#$*###8   "
-                 " #          #### #### ##   #    "
-                 " #      F        #### ##   # #  "
-                 " #     #!#            ######+#  "
-                 " #                           #  "
-                 "        f              <     #  "
-                 " # #######,#,#,#,#,#,#,#######  "
-                 " #########@#@#@#@#@#@#@#######  "
-                 )
-         :on-start (lambda ()
-                     (setf (palette-background (palette *game*))
-                           '(0.8 0.6 0.1 1.0 ))
-                     (setf (palette-inverted-square (palette *game*))
-                           (list 0.7 0.7 1.0 0.25)))
-         :bindings `((#\b . (:trigger :release x))
-                     (#\B . (:blocked-square x))
-                     (#\e . (:trigger :release y))
-                     (#\E . (:blocked-square y))
-                     (#\f . (:trigger :release z))
-                     (#\F . (:blocked-square z))
-                     (#\@ . (:trigger :win))
-                     (#\> . (:blocked-square exit))
-                     (#\< . (:trigger :release exit))
-                     (#\8 . (:trigger :invert))
-                     (#\V . :start)
+(defun level/lateral-thinking ()
+  (make-instance
+   'level-blueprint
+   :name "Physics"
+   :width 31
+   :height 31
+   :grid #("                               "
+           "                              " 
+           "               V                "
+           "               #                "
+           "               #                  "
+           "               #               "
+           "        #             #        "
+           "        #             #        "
+           "   V    #             #    V8  "
+           "  ##### #             # #####  "
+           "  #####-## ####-#### ##-#####  "
+           "      # ## #### #### ## #      "
+           "      #    ####8####    #      "
+           "      #    #### ####    #      "
+           "           ####B####           "
+           "           #       #             "
+           "     #####^#       #^#####     "
+           "     ##### #       # #####b      "
+           "     ##### #       # #####       "
+           "   # #####           ##### #     "
+           "   # #####           ##### #     "
+           "   # #                   # #     "
+           "   # #         8         # #      "
+           "   #          ###          #      "
+           "   #           #           #      "
+           "   #S####==### # ###==####S#      "
+           "   ####        #        ####      "
+           "        #@@#   #   #@@#          "
+           "        ####   #   ####          "
+           "         ##    #    ##           "
+           "         ##    #    ##           "
+           "                                 ")
+   :on-start #'pick-palette
+   :palettes `((t . ((:wall 0 0 0.2 .5)
+                     (:background 0.3 0.5 0.3 1))))
+   :bindings `((#\b . (:trigger :release x))
+               (#\B . (:blocked-square x))
+               (#\e . (:trigger :release y))
+               (#\E . (:blocked-square y))
+               (#\f . (:trigger :release z))
+               (#\F . (:blocked-square z))
+               (#\@ . (:trigger :win))
+               (#\> . (:blocked-square exit))
+               (#\< . (:trigger :release exit))
+               (#\8 . (:trigger :invert))
+               (#\V . :start)
+               (#\W . (:start :inverted))
+               (#\H . :help)
+               (#\% . :vanisher)
+               (#\u . (:spawn spawn-1))
+               (#\U . (:press-button button-group-1 (:trigger spawn-1)))
+               (#\Z . (:button button-group-1 (:trigger gate-3)))
+               (#\S . (:button button-group-3 (:trigger gate-4)))
+               (#\L . (:button button-group-2 (:trigger gate-5)))
+               (#\$ . (:button $ (:trigger unlock-right-square)))
+               (#\+ . (:door final))
+               (#\, . (:door bye))
+               (#\* . (:gate must-close :state :open))
+               (#\! . (:button button-group-5 (:trigger must-close)))
+               (#\_ . (:gate unlock-right-square))
+               (#\- . (:door door-1))
+               (#\= . (:door door-2))
+               (#\~ . (:gate gate-3))
+               (#\^ . (:gate gate-4))
+               (#\: . (:gate gate-5))
+               (#\X . (:trigger :lose)))))
 
-                     (#\W . (:start :inverted))
-                     (#\H . :help)
-                     (#\% . :vanisher)
-                     (#\u . (:spawn spawn-1))
-                     (#\U . (:press-button button-group-1 (:trigger spawn-1)))
-                     (#\Z . (:button button-group-1 (:trigger gate-3)))
-                     (#\S . (:button button-group-3 (:trigger gate-4)))
-                     (#\L . (:button button-group-2 (:trigger gate-5)))
-                     (#\$ . (:button $ (:trigger unlock-right-square)))
-                     (#\+ . (:door final))
-                     (#\, . (:door bye))
-
-                     (#\* . (:gate must-close :state :open))
-                     (#\! . (:button button-group-5 (:trigger must-close)))
-
-                     (#\_ . (:gate unlock-right-square))
-                     (#\- . (:door door-1))
-                     (#\= . (:door door-2))
-                     (#\~ . (:gate gate-3))
-                     (#\^ . (:gate gate-4))
-                     (#\: . (:gate gate-5))))))
+(defun button-intro-level ()
+  (make-instance
+   'level-blueprint
+   :name "Buttons"
+   :width 33
+   :height 33
+   :grid #("        V         V         "
+           "     #        #             "
+           "     #Z## #####~##############"
+           "     ###                         "
+           "                                 "
+           "       ######L######L##         "
+           "       #    ###                 "
+           " ###V    ##              #####  "
+           " ###:############## # ########  "
+           " ###              #-#-########  "
+           " ###          ##    #    B####"
+           " ###          ##    #               "
+           " ############-##^####S###    "
+           "                b               "
+           "                                "
+           " #############S######## ####    "
+           " ###########E              #     "
+           "                           #    "
+           "             #=#=#=#=#######     "
+           "             # #e# #            "
+           "             # # # #            "
+           "           ### #+# ###_#####    "
+           "                 #              "
+           "              8  #8             "
+           " ###8########### ####F#$*###8   "
+           " #          #### #### ##   #    "
+           " #      F        #### ##   # #  "
+           " #     #!#            ######+#  "
+           " #                           #  "
+           "        f                    #  "
+           " # #######,#,#,#,#,#,#,#######  "
+           " #########@#@#@#@#@#@#@#######  "
+           )
+   :on-start #'pick-palette
+   :palettes '((t . ((:background 0.7 0.5 0 1))))
+   :bindings `((#\b . (:trigger :release x))
+               (#\B . (:blocked-square x))
+               (#\e . (:trigger :release y))
+               (#\E . (:blocked-square y))
+               (#\f . (:trigger :release z))
+               (#\F . (:blocked-square z))
+               (#\@ . (:trigger :win))
+               (#\> . (:blocked-square exit))
+               (#\< . (:trigger :release exit))
+               (#\8 . (:trigger :invert))
+               (#\V . :start)
+               (#\W . (:start :inverted))
+               (#\H . :help)
+               (#\% . :vanisher)
+               (#\u . (:spawn spawn-1))
+               (#\U . (:press-button button-group-1 (:trigger spawn-1)))
+               (#\Z . (:button button-group-1 (:trigger gate-3)))
+               (#\S . (:button button-group-3 (:trigger gate-4)))
+               (#\L . (:button button-group-2 (:trigger gate-5)))
+               (#\$ . (:button $ (:trigger unlock-right-square)))
+               (#\+ . (:door final))
+               (#\, . (:door bye))
+               (#\* . (:gate must-close :state :open))
+               (#\! . (:button button-group-5 (:trigger must-close)))
+               (#\_ . (:gate unlock-right-square))
+               (#\- . (:door door-1))
+               (#\= . (:door door-2))
+               (#\~ . (:gate gate-3))
+               (#\^ . (:gate gate-4))
+               (#\: . (:gate gate-5)))))
 
 (defparameter *new-level*
   (setf (level-blueprint *game*)

@@ -5,8 +5,6 @@
   (:method ((sequence sequence))
     (map () #'update sequence)))
 
-(declaim (type function squarep))
-
 (defclass garbage () ())
 
 (defgeneric garbagep (item)
@@ -25,6 +23,8 @@
 
 (defclass solid () ())
 (defclass immaterial () ())
+
+(defun solidp (x) (typep x 'solid))
 
 (defgeneric allow-move-p (object target)
   (:method (item (empty null)) nil)

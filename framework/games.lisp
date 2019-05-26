@@ -7,7 +7,9 @@
                 has-keymap
                 namespace
                 has-dimensions)
-  ((title :initform "Unnamed" :accessor title :initarg :title)
+  ((title :initform "Unnamed"
+          :accessor title
+          :initarg :title)
    (level :initform nil :accessor game-level)
    (level-blueprint :initarg :level-blueprint :accessor level-blueprint)
    (sleep-delay :initarg :sleep-delay

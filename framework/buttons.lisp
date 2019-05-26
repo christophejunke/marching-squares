@@ -7,11 +7,19 @@
                :reader pressedp
                :accessor pressed-by)))
 
+(defgeneric is-pressed-by (button object)
+  (:method (any-button any-object) nil))
+
+(defgeneric button-pressed-p (button)
+  (:method ((button button))
+    (destructuring-bind (north) (neighbours button :n)
+      (find-if (lambda (o) (is-pressed-by button o))
+               (objects-at north)))))
+
 (defmethod update ((button button))
   (call-next-method)
-  (destructuring-bind (north) (neighbours button :n)
-    (setf (pressed-by button)
-          (find-if #'squarep (objects-at north)))))
+  (setf (pressed-by button)
+        (button-pressed-p button)))
 
 (defmethod triggerable ((button button))
   (pressed-by button))
@@ -19,25 +27,20 @@
 (defclass press-button (button) ())
 
 (defmethod display ((button button))
-  (colrect #'palette-wall 0 0 1 1)
-  (colrect (if (pressedp button)
-               #'palette-flash/feedback
-               #'palette-blocked-square)
+  (colrect :wall 0 0 1 1)
+  (colrect (if (triggerable button)
+               :flash/feedback
+               :blocked-square)
            0.1 (if (pressedp button) 0.2 0.1)
            0.9 0.3)
   (when (group button)
     (cond
       ((triggerable (group button))
        (gl:color 1 1 0 0.9)
-       
-       ;; (loop for y from 1/2 upto 4/5 by 1/10
-       ;;       do (gl:rect 1/4 y 3/4 (+ y 1/20)))
-       (gl:rect 0.25 0.55 0.75 0.75)
-       )
+       (gl:rect 0.25 0.55 0.75 0.75))
       (t 
        (gl:color 1 1 0 0.2)
-       (gl:rect 0.25 0.55 0.75 0.75)
-       ))))
+       (gl:rect 0.25 0.55 0.75 0.75)))))
 
 (defmethod display ((button press-button))
   (call-next-method)
@@ -47,7 +50,8 @@
     (gl:color 1 1 0 0.9)
     (gl:rect 0.25 0.55 0.75 0.75)))
 
-(defclass button-group (active-object
+(defclass button-group (group
+                        active-object
                         has-name
                         invisible
                         lambda-trigger)
@@ -59,7 +63,7 @@
 (defmethod update ((group press-button-group))
   (call-next-method)
   (dogroup (button group)
-    (unless (pressedp button)
+    (unless (triggerable button)
       (setf (firedp group) nil)
       (return))))
 

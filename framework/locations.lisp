@@ -86,6 +86,7 @@
   (:method :after ((location loc) (object has-location))
     (when location
       (add-object-at-location% object)))
+  (:method ((location (eql :trash)) (object null)))
   (:method :after ((location (eql :trash)) (object has-location))
     (change-class object 'garbage)))
 

@@ -74,13 +74,12 @@
 (defmethod release :after ((level level) target)
   )
 
-
 (defmethod transform-model-view ((trigger releaser))
   (gl:translate 0.5 0.5 0.5)
   (gl:rotate (* 3 (counter trigger) #.(/ 180 pi)) 0 0 1))
 
 (defmethod display ((trigger releaser))
-  (set-color #'palette-foreground :alpha (alpha trigger))
+  (color `(:alpha ,(alpha trigger) :foreground))
   (csq 0.1))
 
 (defclass helper (square-trigger invisible)
@@ -89,9 +88,7 @@
          :initform "")))
 
 (defmethod trigger ((helper helper))
-  (sdl2:set-window-title
-   *window*
-   (text helper)))
+  (set-title (text helper)))
 
 (defmethod delta-microstep ((trigger releaser) delta)
   (setf (counter trigger)
@@ -190,6 +187,11 @@
                              invisible)
   ())
 
+(defmethod build ((s symbol) context)
+  (if (and s (fboundp s))
+      (build (funcall s) context)
+      (call-next-method)))
+
 ;; FIXME: not all in a single function
 (defmethod build (expression location)
   (flet ((new (class &rest args)
@@ -256,9 +258,10 @@
 
 (defmethod display ((trigger winner))
   (gl:color 1 1 1 (up trigger))
-  (gl:rect 0 0.9 1 1))
+  (gl:rect 0 0.6 1 1))
 
 (define-condition restart-game-signal () ())
+
 (defun restart-game-loop (&rest args)
   (declare (ignore args))
   (invoke-restart 'restart-game-loop))
@@ -305,17 +308,18 @@
 
 ;;;; MARCHING-SQUARES
 
-(defparameter *default-palette*
-  (make-palette :background (list 0.4 0.4 0.5 1)
-                                        ;(list 30/256 60/256 70/256 1)
-                                        ;(list 130/256 0 40/256 1)
-                :wall '(0 0 0 1)
-                :square '(1 1 1 1)
-                :flash/feedback '(1 1 1 1)
-                :inverted-square '(0.7 0.7 1 0.8)
-                :blocked-square '(1 1 1 0.5)
-                :foreground '(1.0 1.0 1.0 0.7)
-                :inverter '(0.8 0.8 0.0 1.)))
+;; (defparameter *default-palette*
+;;   (make-palette :background (list 0.4 0.4 0.5 1)
+;;                                         ;(list 30/256 60/256 70/256 1)
+;;                                         ;(list 130/256 0 40/256 1)
+;;                 :wall '(0 0 0 1)
+;;                 :square '(1 1 1 1)
+;;                 :flash/feedback '(1 1 1 1)
+;;                 :inverted-square '(0.7 0.7 1 0.8)
+;;                 :blocked-square '(1 1 1 0.5)
+;;                 :foreground '(1.0 1.0 1.0 0.7)
+;;                 :inverter '(0.8 0.8 0.0 1.)
+;;                 :door '(1 1 0 1)))
 
 (defclass marching-squares (has-palette game) ()
   (:default-initargs
@@ -323,7 +327,7 @@
    :title "Marching squares"
    :width 31
    :height 31
-   :palette *default-palette*))
+   :palette *palette*))
 
 ;; (defparameter *default-palette*
 ;;   (setf (palette *game*)
@@ -431,9 +435,9 @@
 
 (defmethod game-loop :before ((game marching-squares))
   (reinitialize-instance game)
+  (sdl2:set-window-title *window* (title *game*))
   (setf (game-level *game*)
         (build (level-blueprint *game*) *game*))
-  (sdl2:set-window-title *window* (title *game*))
   (trigger-by-name :start (game-level *game*)))
 
 (defmethod display :after ((game marching-squares))
@@ -455,26 +459,19 @@
           (sleep (sleep-delay game))))))
 
 (defmethod display ((game marching-squares))
-  (with-accessors ((palette palette)) game
-    (apply #'gl:clear-color (palette-background palette))
-    (gl:clear :color-buffer :depth-buffer)
-    ;; (gl:color 0.5 0.5 0.5 0.3)
-    ;; (gl:rect -1 -1 32 32)
-    (display (game-level game))))
+  (display (game-level game)))
 
 (defparameter *shadow* 0.1)
 (defun shadow-square (&aux (shadow *shadow*))
   (gl:rect shadow shadow (1+ shadow) (1+ shadow)))
 
-(defmethod display ((cell (eql :wall)))
-  (let ((wall-color (palette-wall (palette *game*))))
-    (apply #'gl:color wall-color)
-    (gl:rect 0 0 1 1)))
+(defparameter *grid* nil)
 
-(defun set-color (reader &key alpha palette)
-  (destructuring-bind (r g b a) (funcall reader (or palette
-                                                    (palette *game*)))
-    (gl:color r g b (or alpha a))))
+(defmethod display ((cell (eql :wall)))
+  (color :wall)
+  (if *grid*
+      (gl:rect 0.1 0.1 0.9 0.9)
+      (gl:rect 0 0 1 1)))
 
 (defmethod delta-microstep ((trigger inverter) dt)
   (setf (angle trigger)
@@ -501,11 +498,11 @@
   (gl:rect (- size) (- size) size size))
 
 (defmethod display ((trigger inverter))
-  (set-color #'palette-wall :alpha 0.8)
+  (color '(:alpha 0.8 :wall))
   (csq 0.2)
-  (set-color #'palette-inverter :alpha 0.8)
+  (color '(:alpha 0.8 :inverter))
   (csq 0.15)
-  (set-color #'palette-square :alpha 0.4)
+  (color '(:alpha 0.4 :square))
   (gl:translate 0 0 -0.1)
   (csq 0.1)
   (gl:translate 0 0 +0.2)
@@ -515,22 +512,46 @@
 
 (defmethod update ((arbiter move-arbiter))
   (update (mobiles arbiter))
-  (call-next-method))
-
-(defmethod update :after ((arbiter move-arbiter))
+  (call-next-method)
   (arbiter-moves arbiter (mobiles arbiter)))
+
+;; (defmethod update :after ((arbiter move-arbiter))
+;;   (arbiter-moves arbiter (mobiles arbiter)))
 
 (defmethod update ((object has-active-objects))
   (update (active-objects object))
   (call-next-method))
 
+;; ;; override any order existing from applicable method
+;; (defmethod update ((game game))
+;;   (propagate-inputs game)
+;;   (update (mobiles game))
+;;   ;;; ????!!!!
+;;   (trigger (remove-if (lambda (u) (typep u 'button-group))
+;;                       (items (triggers *game*))))
+;;   (arbiter-moves game (mobiles game))
+;;   (update (active-objects game))
+;;   (trigger (triggers game))
+;;   (update (game-level game)))
+
+;; override any order existing from applicable method
 (defmethod update ((game game))
   (propagate-inputs game)
-  (update (game-level game))
-  (call-next-method))
+  ;; move to next position
+  (update (mobiles game))
+  ;; terminate last action
+  (update (active-objects game))
+  ;; maybe trigger changes
+  (trigger (triggers game))
+  ;; update level
+  ;; based on new object states and inputs, compute next moves
+  (arbiter-moves game (mobiles game))
+  (post-move-update (active-objects game))
+  (update (game-level game)))
 
-(defmethod update :after ((object has-triggers))
-  (trigger (triggers object)))
+(defmethod update ((object has-triggers))
+  (trigger (triggers object))
+  (call-next-method))
 
 (defmethod propagate-inputs ((game game))
   (let ((direction (direction game)))
@@ -561,8 +582,6 @@
                             (values :right e)))))))))))
 
 ;;(setf (level-blueprint *game*) *intro-level*)
-
-
 
 (defparameter *ramping-level*
   (make-instance

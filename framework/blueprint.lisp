@@ -19,9 +19,12 @@
   (:method-combination progn)
   (:method progn (a b)))
 
-(defclass level-blueprint (has-dimensions)
+(defclass level-blueprint (has-dimensions has-name)
   ((grid :accessor grid :initarg :grid)
    (bindings :accessor bindings :initarg :bindings)
    (class :accessor level-class :initarg :class :initform 'level)
-   (start-hook :accessor start-hook :initarg :on-start :initform nil)))
+   (palettes :accessor blueprint-palettes :initarg :palettes :initform nil)
+   (triggers :accessor blueprint-triggers :initarg :triggers :initform nil)
+   (start-hook :accessor start-hook :initarg :on-start :initform nil))
+  (:default-initargs :name "anonymous"))
 
