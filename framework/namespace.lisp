@@ -2,7 +2,7 @@
 
 (defclass namespace ()
   ((index :accessor index
-          :initform (make-hash-table :test #'eq))))
+          :initform (make-hash-table :test #'equalp))))
 
 (defclass has-name ()
   ((name :reader name :initarg :name)))
@@ -10,6 +10,14 @@
 (defmethod incorporate progn ((namespace namespace)
                               (named has-name))
   (pushnew named (gethash (name named) (index namespace))))
+
+(defmethod extract-from progn ((namespace namespace)
+                               (named has-name))
+  (let ((key (name named))
+        (table (index namespace)))
+    (deletef (gethash key table) named)
+    (unless (gethash key table)
+      (remhash key table))))
 
 (defgeneric resolve (name namespace)
   (:method (name (namespace namespace))

@@ -7,7 +7,9 @@
                 #:set-render-draw-color
                 #:scancode-key-to-value
                 #:scancode-value
-                #:with-everything
+                #:with-init
+                #:with-window
+                #:with-gl-context
                 #:with-renderer
                 #:with-event-loop
                 #:gl-make-current)
@@ -24,8 +26,8 @@
 (defvar *renderer*)
 (defvar *game*)
 
-(defclass square-trigger (global-trigger
-                          has-location)
+(defclass square-trigger (has-location
+                          trigger)
   ())
 
 (defclass square-lambda (square-trigger
@@ -51,10 +53,15 @@
 (defmethod trigger ((inverter inverter))
   (map () #'invert (objects-at (location inverter))))
 
+(defclass release-group (named-group
+                         global-trigger
+                         oneshot)
+  ())
+
 (defclass releaser (square-trigger
                     has-absolute-microstep
                     transformable
-                    oneshot)
+                    has-group)
   ((alpha :accessor alpha :initform 0)
    (counter :accessor counter :initform 0)
    (target :accessor target :initarg :target)))
@@ -62,17 +69,7 @@
 (defmethod trigger ((releaser releaser))
   (let ((level (level (location releaser)))
         (target (target releaser)))
-    (release level target)
-    ;; remove other triggers
-    (dogroup (trigger (triggers (game level)))
-      (unless (eq trigger releaser)
-        (when (typep trigger '(and releaser oneshot))
-          (when (eq (target trigger) target)
-            (setf (location trigger) :trash)))))))
-
-;; triggers in LEVEL or in GAME????
-(defmethod release :after ((level level) target)
-  )
+    (release level target)))
 
 (defmethod transform-model-view ((trigger releaser))
   (gl:translate 0.5 0.5 0.5)
@@ -82,7 +79,7 @@
   (color `(:alpha ,(alpha trigger) :foreground))
   (csq 0.1))
 
-(defclass helper (square-trigger invisible)
+(defclass helper (square-trigger global-trigger invisible)
   ((text :initarg :text
          :accessor text
          :initform "")))
@@ -138,7 +135,7 @@
                 (/ dt internal-time-units-per-second 1/6))
              #.(* 2 pi))))
 
-(defmethod display ((vanisher vanisher))
+(defmethod display((vanisher vanisher))
   (let* ((pulse (+ (offset vanisher) (pulse vanisher)))
          (intensity (+ 0.3 (/ (sin pulse) 5)))
          (y 1)
@@ -178,7 +175,11 @@
 ;;;;;
 
 (defun parse-action (expression level)
-  (match expression
+  (optima:ematch expression
+    ((list* :release names)
+     (lambda ()
+       (dolist (name names)
+         (release level name))))
     ((list* :trigger names)
      (lambda ()
        (dolist (name names)
@@ -213,22 +214,10 @@
                     :latchp t))
       ((list :button group action)
        (etypecase group
-         (cons
-          (destructuring-bind (type group) group
-            (make-button group
-                         location
-                         (parse-action action (level location))
-                         :group-class (ecase type
-                                        (:or 'or-button-group)
-                                        (:and 'and-button-group)))))
          (symbol (make-button group
                               location
                               (parse-action action (level location))))))
       ((list :start :inverted) (new 'inverted-start-trigger))
-      ((list :and-group group-name expression)
-       (build expression (named-and-group group-name)))
-      ((list :or-group group-name expression)
-       (build expression (named-and-group group-name)))
       ((list* :gate name options)
        (apply #'make-door name :location location :pressp nil options)) 
       ((list :door name) (make-door name :location location :pressp t))
@@ -239,7 +228,11 @@
       ((list* :class/loc class initargs) (apply #'new class initargs))
       ((list :trigger :lose) (new 'looser))
       ((list :trigger :win) (new 'winner))
-      ((list :trigger :release name) (new 'releaser :target name))
+      ((list :trigger :release name)
+       (new 'releaser :group-name `(:releaser-for ,name)
+                      :group-class 'release-group
+                      :combination :or
+                      :target name))
       (e (add-object-at-location%% location e)))))
 
 ;;;; GAME
@@ -266,6 +259,7 @@
   (gl:rect 0 0.6 1 1))
 
 (define-condition restart-game-signal () ())
+(define-condition restart-window () ())
 
 (defun restart-game-loop (&rest args)
   (declare (ignore args))
@@ -277,6 +271,14 @@
 
 (use-package :bricabrac.sdl2.event-loop)
 
+(defun sdl2-break (&aux (all (sb-thread:list-all-threads)))
+  (sb-thread:interrupt-thread (or (find "SDL2"
+                                        all
+                                        :test #'search
+                                        :key #'sb-thread:thread-name)
+                                  (error "Not found in ~s" all))
+                              #'break))
+
 (defgeneric game-loop (game)
   (:method (game)
     (do-match-events (:method :poll)
@@ -287,63 +289,91 @@
       (:quit () (return))
       (:idle () (game-idle game)))))
 
+(defvar *display* 0)
+
+(defun display-size (&optional (index *display*))
+  (let ((displays (sdl2:get-num-video-displays)))
+    (check-type displays (integer 1 *))
+    (check-type index (integer 0 *))
+    (if (<= index displays)
+        (sdl2:get-display-bounds index)
+        (error "Bad index ~d (max. is ~d)" index displays))))
+
+(defparameter *size-ratio* 1/2)
+(defparameter *min-dimension* 200)
+(defparameter *max-dimension* 500)
+
+(defun adjust-size (size &optional
+                           (min *min-dimension*)
+                           (max *max-dimension*)
+                           (ratio *size-ratio*))
+  (assert (<= 0 min max))
+  (assert (<= 0 ratio 1))
+  (clamp (* size ratio) min max))
+
+;; aspect ratio is width/height
+(defun window-dimensions (aspect-ratio)
+  (let ((display (display-size)))
+    (if (>= aspect-ratio 1)
+        ;; large game
+        (let ((width (adjust-size (sdl2:rect-width display))))
+          (values width (/ width aspect-ratio)))
+        ;; tall game
+        (let ((height (adjust-size (sdl2:rect-height display))))
+          (values (* height aspect-ratio) height)))))
+
 (defgeneric start-game (game)
   (:method (game)
-    (with-everything (:gl *gl*
-                      :window (*window* :w (* *size* (width game))
-                                        :h (* *size* (height game))
-                                        :title (title game)
-                                        :flags '(:shown :opengl :resizable)))
-      (with-renderer (*renderer* *window*)
-        (gl-make-current *window* *gl*)
-        (game-setup game)
-        (handler-bind ((restart-game-signal #'restart-game-loop))
-          (tagbody
-           start
-             (restart-case (game-loop game)
-               (restart-game-loop ()
-                 :report "Restart game loop"
-                 (go start)))))))))
+    (with-init (:everything)
+      ;; In graphical thread
+      (tagbody
+       create-window
+         (multiple-value-bind (width height)
+             (window-dimensions (/ (width game) (height game)))
+           (with-window (*window* :w (round width)
+                                  :h (round height)
+                                  :title (title game)
+                                  :flags '(:shown :opengl :resizable))
+             (with-gl-context (*gl* *window*)
+               (with-renderer (*renderer* *window*)
+                 (gl-make-current *window* *gl*)
+                 (game-setup game)
+                 (handler-bind ((restart-game-signal #'restart-game-loop)
+                                (restart-window
+                                  (lambda (condition)
+                                    (declare (ignore condition))
+                                    (go create-window))))
+                   (tagbody
+                    start
+                      (restart-case (game-loop game)
+                        (restart-game-loop ()
+                          :report "Restart game loop"
+                          (go start)))))))))))))
 
 (defgeneric game-command (game command)
   (:method (game command) nil)
   (:method (game (command function)) (funcall command)))
 
-(defgeneric game-idle (game))
+(defclass locked ()
+  ((lock :initform (bt:make-lock) :reader lock)))
+
+(defgeneric game-idle (game)
+  (:method :around ((object locked))
+    (bt:with-lock-held ((lock object))
+      (call-next-method))))
 
 ;;;; MARCHING-SQUARES
 
-;; (defparameter *default-palette*
-;;   (make-palette :background (list 0.4 0.4 0.5 1)
-;;                                         ;(list 30/256 60/256 70/256 1)
-;;                                         ;(list 130/256 0 40/256 1)
-;;                 :wall '(0 0 0 1)
-;;                 :square '(1 1 1 1)
-;;                 :flash/feedback '(1 1 1 1)
-;;                 :inverted-square '(0.7 0.7 1 0.8)
-;;                 :blocked-square '(1 1 1 0.5)
-;;                 :foreground '(1.0 1.0 1.0 0.7)
-;;                 :inverter '(0.8 0.8 0.0 1.)
-;;                 :door '(1 1 0 1)))
-
-(defclass marching-squares (has-palette game) ()
+(defclass marching-squares (has-palette
+                            game
+                            locked)
+  ()
   (:default-initargs
    :direction nil
    :title "Marching squares"
    :width 31
    :height 31
    :palette *palette*))
-
-;; (defparameter *default-palette*
-;;   (setf (palette *game*)
-;;         (make-palette :background (list 30/100 20/100 10/100 1)
-;;                       :wall '(0.8 0.6 0.1 1)
-;;                       :square '(0 0 0 01)
-;;                       :flash/feedback '(0 0 0 1)
-;;                       :inverted-square '(0 0 0 0.8)
-;;                       :blocked-square '(0 0 0 .9)
-;;                       :foreground '(10/10 9/10 1/10 0.8)
-;;                       :inverter '(1 1 1 1))))
 
 (defun fill-view (width height)
   (let* ((max (max width height))
@@ -363,32 +393,13 @@
             min
             min)))
 
-;; (defun best-fit (game width height)
-;;   (when (< height 32)
-;;     (setf height 32))
-;;   (let ((game-ratio (/ (width game) (height game)))
-;;         (window-ratio (/ width height)))
-    
-    
-    
-;;     )
-;;   (values 0 0 width height))
-
-(defun ortho-dim (width height)
-  (values (floor width *size*)))
-
 (defgeneric resize-game (game width height)
   (:method ((game marching-squares) width height)
     (multiple-value-call #'gl:viewport (shrink-view width height))
     (gl:matrix-mode :projection)
     (gl:load-identity)
-    (gl:ortho -1 1 -1 1 -1 1)
-))
+    (gl:ortho -1 1 -1 1 -1 1)))
 
-              ;; (width game)
-              ;; (height game)
-              ;; 0 -1 1
-;;(setf *size* 20)
 (defmethod game-setup progn ((game marching-squares))
   (gl:enable :blend)
   ;; (gl:enable :depth-test)
@@ -400,10 +411,12 @@
 
 (defmethod game-command ((game marching-squares) (command symbol))
   (case command
+    ;; (:break (break))
     (:restart-loop (restart-game-loop))
     (:go-left (setf (direction game) :left))
     (:go-right (setf (direction game) :right))
-    (:restart (restart-game-loop))))
+    (:restart (restart-game-loop))
+    (:restart-graphics (signal 'restart-window))))
 
 (defmethod arbiter-compare
     ((arbiter marching-squares) location first second)
@@ -413,21 +426,14 @@
       (and (not (invertedp (move-object first)))
            (invertedp (move-object second)))))
 
-;; (make-palette
-;;              :background '(0.29296875d0 0.29296875d0 0.390625d0 1.0)
-;;              :square '(1 1 1 1))
-
 (defmethod initialize-instance :after
     ((game marching-squares) &key &allow-other-keys)
   (setf (keybind :scancode-f1 game) :restart-graphics)
   (setf (keybind :scancode-left game) :go-left)
   (setf (keybind :scancode-right game) :go-right)
   (setf (keybind :scancode-escape game) :restart)
-  (setf (keybind :scancode-f2 game) :restart-loop))
-
-(defmethod (setf game-level) :after ((level level) (game game))
-  (setf (width game) (width level)
-        (height game) (height level)))
+  (setf (keybind :scancode-f2 game) :restart-loop)
+  (setf (keybind :scancode-f3 game) :break))
 
 ;; NO: e.g. prepare next blueprint while level is playing
 ;;
@@ -448,6 +454,11 @@
 (defmethod display :after ((game marching-squares))
   (gl:flush)
   (sdl2:gl-swap-window *window*))
+
+(defmethod game-idle :around ((game marching-squares))
+  (loop
+    (restart-case (return (call-next-method))
+      (accept () :report "Try next loop iteration"))))
 
 (defmethod game-idle ((game marching-squares))
   (update game)

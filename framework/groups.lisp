@@ -28,12 +28,23 @@
                  (name group))
             (items group))))
 
+(defmethod (setf location) ((location (eql :trash)) (object group))
+  (dogroup (x object)
+    (setf (location x) :trash))
+  (call-next-method))
+
+;; (defmethod extract-from ((level level) (object has-group))
+;;   (group-remove object (group object)))
+
 (defclass named-group (has-name group) ())
 
 (defun group-add (object group &aux (vec (items group)))
   (if (find object vec)
       (cerror "OK" "Object ~a already exists in group ~a" object group)
       (vector-push-extend object vec)))
+
+(defun group-remove (object group &aux (vec (items group)))
+  (setf (items% group) (delete object vec)))
 
 (defun group-clear (group)
   (setf (items% group) (make-group-vector% nil)))
@@ -101,27 +112,45 @@
 (defgeneric ensure-group (name class location &rest args)
   (:method (name class location &rest args)
     (let* ((level (level location))
-           (group (first (resolve name level))))
-      (unless group
-        (setf group (apply #'make-instance
-                           class
-                           :name name
-                           :allow-other-keys t
-                           args))
-        (incorporate location group))
-      group)))
+           (matching-groups (remove-if-not (of-type 'group)
+                                           (resolve name level))))
+      (when (rest matching-groups)
+        ;; add to all groups?
+        (error "Ambiguous name"))
+      (let ((group (first matching-groups)))
+        (unless group
+          (setf group (apply #'make-instance
+                             class
+                             :name name
+                             :allow-other-keys t
+                             args))
+          (incorporate location group))
+        group))))
+
+(defclass active-group (group active-object has-name) ())
 
 (defmethod initialize-instance :after ((object has-group)
                                        &key
-                                         group-class
+                                         (group-class 'active-group)
                                          combination
-                                         name
+                                         group-name
                                          action
                                          location &allow-other-keys)
-  (let ((group (ensure-group name
+  (let ((group (ensure-group group-name
                              group-class
                              location
                              :action action
                              :combination combination)))
     (setf (group object) group)
     (group-add object group)))
+
+(defgeneric call-within-group-context (group function)
+  (:method (group (function function))
+    (funcall function)))
+
+(defmacro with-group-context (group &body body)
+  `(call-within-group-context ,group (lambda () ,@body)))
+
+(defmethod display :around ((object has-group))
+  (with-group-context (group object)
+    (call-next-method)))

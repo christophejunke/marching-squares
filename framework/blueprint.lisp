@@ -15,7 +15,12 @@
   (:documentation "Build an object from a blueprint and a context"))
 
 (defgeneric incorporate (parent object)
-  (:documentation "Incorporate a built object into a parent")
+  (:documentation "Incorporate an OBJECT into a PARENT object")
+  (:method-combination progn)
+  (:method progn (a b)))
+
+(defgeneric extract-from (parent object)
+  (:documentation "Extract incorporated OBJECT from PARENT")
   (:method-combination progn)
   (:method progn (a b)))
 

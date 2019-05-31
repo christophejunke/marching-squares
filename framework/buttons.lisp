@@ -27,28 +27,24 @@
 (defclass press-button (button) ())
 
 (defmethod display ((button button))
-  (colrect :wall 0 0 1 1)
+  (colrect :button/background 0 0 1 1)
+
+  ;; top rectangle (press status)
   (colrect (if (triggerable button)
-               :flash/feedback
-               :blocked-square)
-           0.1 (if (pressedp button) 0.2 0.1)
-           0.9 0.3)
+               :button/pressed
+               :button/unpressed)
+           0.1
+           (if (pressedp button) 0.2 0.1)
+           0.9
+           0.3)
   (when (group button)
     (cond
       ((triggerable (group button))
-       (gl:color 1 1 0 0.9)
+       (color :button/fired)
        (gl:rect 0.25 0.55 0.75 0.75))
-      (t 
-       (gl:color 1 1 0 0.2)
+      (t
+       (color :button/inert)
        (gl:rect 0.25 0.55 0.75 0.75)))))
-
-(defmethod display ((button press-button))
-  (call-next-method)
-  (when (and (group button) (firedp (group button)))
-    (gl:color 0 0 0 1)
-    (gl:rect 0.1 0.5 0.9 0.9)
-    (gl:color 1 1 0 0.9)
-    (gl:rect 0.25 0.55 0.75 0.75)))
 
 (defclass button-group (group
                         active-object
@@ -69,7 +65,7 @@
 
 (defun make-button (name location action &key latchp (combine :and))
   (make-instance (if latchp 'press-button 'button)
-                 :name name
+                 :group-name name
                  :group-class (if latchp
                                   'press-button-group
                                   'button-group)

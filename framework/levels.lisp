@@ -61,6 +61,10 @@
   (let ((*incorporate-location* location))
     (incorporate (level location) object)))
 
+(defmethod extract-from progn ((location loc) object)
+  (let ((*incorporate-location* location))
+    (extract-from (level location) object)))
+
 (defun augment-palettes (palettes)
   (loop
     for (key . list) in palettes
@@ -108,6 +112,9 @@
 
 (defmethod incorporate progn ((level level) item)
   (incorporate (game level) item))
+
+(defmethod extract-from progn ((level level) item)
+  (extract-from (game level) item))
 
 (defmethod microstep ((level level) ratio)
   (let ((array (level-array level)))

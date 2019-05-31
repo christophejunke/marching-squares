@@ -30,11 +30,16 @@
 (defclass press-door (door button) ())
 (defclass press-door-group (door-group global-trigger) ())
 
+(defgeneric door-blocked-open-p (door)
+  (:method ((door door))
+    (find-if #'solidp
+             (remove door (objects-at (location door))))))
+
 (defun make-door (name &key location pressp (state :close) (combine :and))
   (make-instance (if pressp 'press-door 'door)
                  :group-class (if pressp 'press-door-group 'door-group)
                  :combination combine
-                 :name name
+                 :group-name name
                  :location location
                  :state state))
 
@@ -55,20 +60,15 @@
   (setf (state door)
         (case (state door)
           (:opening :open)
-          (:open :closing)
+          (:open (if (door-blocked-open-p door)
+                     :open
+                     :closing))
           (:closing :close)
           (t (state door)))))
 
 (defmethod triggerable ((door press-door))
   (or (pressedp door)
-      (find-if #'solidp
-               (remove door (objects-at (location door))))))
-
-(defmethod trigger ((door press-door))
-  ;; (when (find-if #'solidp (remove door (objects-at (location door))))
-  ;;   (setf (state door) :open)
-  ;;   (return-from trigger))
-  (call-next-method))
+      (door-blocked-open-p door)))
 
 (declaim (inline openness-ratio))
 (defun openness-ratio (openness)
@@ -82,15 +82,15 @@
     (gl:rect min-x min-y max-x max-y)
     (gl:rect (- 1 min-x) min-y (- 1 max-x) max-y)))
 
-(defmethod display ((door press-door))
-  (let ((ratio (openness-ratio (openness door))))
-    (prog1 ratio
-      (color :wall)
-      (draw-door 0 0 0.3 ratio)
-      (color (if (pressedp door)
-                 :flash/feedback
-                 :foreground))
-      (draw-door 0.05 0 0.15 ratio))))
+(defmethod display ((door press-door)))
+(let ((ratio (openness-ratio (openness door))))
+  (prog1 ratio
+    (color :wall)
+    (draw-door 0 0 6/20 ratio)
+    (color (if (pressedp door)
+               :flash/feedback
+               :foreground))
+    (draw-door 5/100 0 3/20 ratio)))
 
 (defmethod display ((door door))
   (let ((ratio (openness-ratio (openness door))))

@@ -1,37 +1,23 @@
 (in-package :marching-squares)
 
+(defparameter *palettes* nil)
+
 (defparameter *palette*
   '((:background 0.4 0.4 0.5 1)
     (:wall 0 0 0 1)
     (:square 1 1 1 1)
     (:flash/feedback 1 1 1 1)
     (:inverted-square 0 0 0 1)
-    (:blocked-square 1 1 1 0.5)
+    (:low-contrast 1 1 1 0.5)
+    (:blocked-square . :low-contrast)
     (:foreground 1.0 1.0 1.0 0.7)
     (:inverter 0.8 0.8 0.0 1.)
-    (:door 1 1 0 1)))
-
-(defparameter *white-on-black*
-  '((:background 0 0 0 1)
-    (:wall 1 1 1 0.25)
-    (:square 1 1 1 0.8)
-    (:flash/feedback 1 1 1 1)
-    (:inverted-square 0 0 0 1)
-    (:blocked-square 1 1 1 0.3)
-    (:foreground 1 1 1 1)
-    (:inverter 0.8 0.8 0.0 1.)
-    (:door 1 1 1 1)))
-
-(defparameter *black-on-white*
-  '((:background 0.8 0.8 0.8 1)
-    (:wall 0 0 0 1)
-    (:square 1 1 1 1)
-    (:flash/feedback 1 1 1 1)
-    (:inverted-square 0 0 0 1)
-    (:blocked-square 1 1 1 0.3)
-    (:foreground 1 1 1 0.6)
-    (:inverter 0.8 0.8 0.0 1.)
-    (:door 1 1 1 1)))
+    (:door 1 1 0 1)
+    (:button/background . :wall)
+    (:button/pressed . :flash/feedback)
+    (:button/unpressed . :low-contrast)
+    (:button/fired 1 1 0 0.9)
+    (:button/inert :alpha 0.2 :button/fired)))
 
 ;; (setf (cdr (assoc :wall *palette*))
 ;;       (list 0 0 0 0.4))
@@ -98,10 +84,6 @@
     (eval-color
      (cdr (assoc identifier (palette object))))))
 
-(defmacro with-palette ((palette) &body body)
-  `(let ((*palette* ,palette))
-     ,@body))
-
 (defun set-color (slot &key alpha palette)
   (destructuring-bind (r g b a)
       (cdr
@@ -110,8 +92,23 @@
     (gl:color r g b (or alpha a))))
 
 (defmethod display :around ((object has-palettes))
-  (let ((*palette* (current-palette object)))
+  (let ((*palettes* (palettes object))
+        (*palette* (current-palette object)))
+    (call-next-method)))
+
+(defmethod display :around ((object has-name))
+  (if-let (palette (assoc (name object) *palettes*))
+    (let ((*palette* (cdr palette)))
+      (call-next-method))
+    (call-next-method)))
+
+(defmethod call-within-group-context :around ((object has-name)
+                                              (function function))
+  (if-let (palette (assoc (name object) *palettes*))
+    (let ((*palette* (cdr palette)))
+      (call-next-method))
     (call-next-method)))
 
 (defun color (expression)
   (apply #'gl:color (eval-color expression)))
+

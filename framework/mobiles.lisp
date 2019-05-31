@@ -22,6 +22,9 @@
 (defmethod incorporate progn ((arbiter move-arbiter) (object mobile))
   (group-add object (mobiles arbiter)))
 
+(defmethod extract-from progn ((arbiter move-arbiter) (object mobile))
+  (group-remove object (mobiles arbiter)))
+
 (defmethod reinitialize-instance :after
     ((object move-arbiter) &key &allow-other-keys)
   (group-clear (mobiles object)))

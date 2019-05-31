@@ -3,7 +3,7 @@
 (defun intro-level ()
   (make-instance
    'level-blueprint
-   :name "Tutorial"
+   :name "First steps"
    :class 'shakeable-level
    :width 31
    :height 31
@@ -77,8 +77,14 @@
 (defmethod is-pressed-by ((door press-door) (wall wall-square))
   nil)
 
+(defclass visibly-wall-square (wall-square) ())
+
 (defmethod display ((square wall-square))
   (display :wall))
+
+(defmethod display ((square visibly-wall-square))
+  (color '(:alpha 0.55 :wall))
+  (gl:rect 0 0 1 1))
 
 (defmethod display ((blocker invisible-blocker))
   (set-color :inverter :alpha 1)

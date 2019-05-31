@@ -10,13 +10,10 @@
   ((invertedp :initform nil :accessor invertedp :initarg :inverted)))
 
 (defmethod (setf direction) (direction (invertible has-invertible-direction))
-  (setf (slot-value invertible 'direction)
-        (if (invertedp invertible)
-            (case direction
-              (:left :right)
-              (:right :left)
-              (t direction))
-            direction)))
+  (call-next-method (if (invertedp invertible)
+                        (invert direction)
+                        direction)
+                    invertible))
 
 (defun invertiblep (object)
   (typep object 'has-invertible-direction))

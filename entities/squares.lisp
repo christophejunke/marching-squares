@@ -36,11 +36,14 @@
   (setf (blockedp square) nil)
   (activate-square (location square) square))
 
+(defmethod invert ((direction (eql :left))) :right)
+(defmethod invert ((direction (eql :right))) :left)
+(defmethod invert ((direction symbol)) direction)
+
 (defmethod invert ((square square))
+  ;; direct slot-value write to avoid inverting the direction!
   (setf (slot-value square 'direction)
-        (case (direction square)
-          (:left :right)
-          (:right :left)))
+        (invert (direction square)))
   (call-next-method))
 
 ;; TODO origin at square center (simplifies)
@@ -89,21 +92,14 @@
      (colrect :wall 0 0 1 1.1)
      (colrect :blocked-square 0.1 0.1 0.9 0.9))
     ((invertedp square)
-     (color :wall)
-     (gl:rect 0 0 1 1)
-     (color :square)
-     (gl:rect 0.10 0.10 0.9 0.9)
-     ;; (color :wall)
-     ;; (gl:rect 0.15 0.15 0.85 0.85)
-     (color :inverted-square)
-     (gl:rect 0.30 0.30 0.70 0.70))
+     (colrect :wall 0 0 1 1)
+     (colrect :square 0.10 0.10 0.9 0.9)
+     (colrect :inverted-square 0.30 0.30 0.70 0.70))
     (t
-     (color :wall)
-     (gl:rect 0 0 1 1)
-     (color :square)
-     (gl:rect 0.1 0.1 0.9 0.9))))
+     (colrect :wall 0 0 1 1)
+     (colrect :square 0.1 0.1 0.9 0.9))))
 
-;; debug
+;; ;; debug
 ;; (defmethod display :after ((square square))
 ;;   (when (invertedp square)
 ;;     (gl:color 1 0 0 1)

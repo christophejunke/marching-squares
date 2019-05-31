@@ -57,6 +57,10 @@
                               (trigger global-trigger))
   (group-add trigger (triggers root)))
 
+(defmethod extract-from progn ((root has-triggers)
+                               (trigger global-trigger))
+  (group-remove trigger (triggers root)))
+
 (defmethod display ((trigger trigger))
   (color :wall)
   (gl:rect 0.2 0.2 0.8 0.8))

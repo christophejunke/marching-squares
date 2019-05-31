@@ -86,15 +86,20 @@
   (:method :after ((location loc) (object has-location))
     (when location
       (add-object-at-location% object)))
-  (:method ((location (eql :trash)) (object null)))
-  (:method :after ((location (eql :trash)) (object has-location))
+  (:method ((location (eql :trash)) object))
+  (:method :before ((location (eql :trash)) (object has-location))
+    (extract-from (location object) object))
+  (:method :after ((location (eql :trash)) object)
     (change-class object 'garbage)))
 
-(defun objects-at (location)
-  (ensure-list
-   (aref (level-array (level location))
-         (row location)
-         (col location))))
+(progn
+  (defun objects-at (location)
+    (ensure-list
+     #1=(aref (level-array (level location))
+           (row location)
+           (col location))))
+  (defun (setf objects-at) (value location)
+    (setf #1# (ensure-list value))))
 
 (defmethod allow-move-p (mobile (location loc))
   (let ((target (objects-at location)))
@@ -105,3 +110,4 @@
   (or (< (row l1) (row l2))
       (and (= (row l1) (row l2))
            (< (col l1) (col l2)))))
+

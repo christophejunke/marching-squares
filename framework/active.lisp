@@ -9,6 +9,10 @@
     ((root has-active-objects) (object active-object))
   (group-add object (active-objects root)))
 
+(defmethod extract-from progn
+    ((root has-active-objects) (object active-object))
+  (group-remove object (active-objects root)))
+
 (defmethod reinitialize-instance :after
     ((object has-active-objects) &key &allow-other-keys)
   (group-clear (active-objects object)))

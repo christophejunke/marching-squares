@@ -16,6 +16,7 @@
         (make-array dimensions :initial-element nil)))
 
 (defgeneric layer-add (layer object location)
+  (:method (layer (object group) location))
   (:method ((layer null) object location))
   (:method (layer (object null) location))
   (:method ((array array) object (location loc))
@@ -37,6 +38,20 @@
                      (list object)
                      #'location<
                      :key #'location))))))
+
+(defgeneric layer-remove (layer object location)
+  (:method (layer (object group) location))
+  (:method ((layer null) object location))
+  (:method (layer (object null) location))
+  (:method ((array array) object (location loc))
+    (setf (objects-at location)
+          (remove object (objects-at location))))
+  (:method ((layer grid-layer) object location)
+    (layer-remove (layer-grid layer) object location))
+  (:method ((layer sequence-layer) (object has-location) (location loc))
+    (assert (equalp (location object) location))
+    (with-accessors ((row row) (col col)) location
+      (removef (layer-sequence layer) object))))
 
 (defun find-layer (stack symbol)
   (cdr (assoc symbol (layers stack))))
@@ -72,10 +87,17 @@
    (layers :accessor layers))
   (:default-initargs
    :specifications 
-   '((:BACKGROUND :GRID) :STATIC :TRIGGERS :MOBILES :OVERLAY)))
+   '((:BACKGROUND :GRID)
+     :STATIC
+     :TRIGGERS
+     :MOBILES
+     :OVERLAY)))
 
 (defmethod incorporate progn ((stack layer-stack) object)
   (layer-add (layer stack object) object *incorporate-location*))
+
+(defmethod extract-from progn ((stack layer-stack) object)
+  (layer-remove (layer stack object) object *incorporate-location*))
 
 (defmethod initialize-instance :after
     ((stack layer-stack)
@@ -88,9 +110,6 @@
              (default-layer stack)
              (layers stack)))
     (setf (default-layer stack) default-cell)))
-
-;; (defmethod incorporate progn ((stack layer-stack) object)
-;;   (layer-add stack (layer stack object) object))
 
 (defparameter *stack-layer-restriction* nil)
 
