@@ -53,32 +53,6 @@
 (defmethod trigger ((inverter inverter))
   (map () #'invert (objects-at (location inverter))))
 
-(defclass release-group (named-group
-                         global-trigger
-                         oneshot)
-  ())
-
-(defclass releaser (square-trigger
-                    has-absolute-microstep
-                    transformable
-                    has-group)
-  ((alpha :accessor alpha :initform 0)
-   (counter :accessor counter :initform 0)
-   (target :accessor target :initarg :target)))
-
-(defmethod trigger ((releaser releaser))
-  (let ((level (level (location releaser)))
-        (target (target releaser)))
-    (release level target)))
-
-(defmethod transform-model-view ((trigger releaser))
-  (gl:translate 0.5 0.5 0.5)
-  (gl:rotate (* 3 (counter trigger) #.(/ 180 pi)) 0 0 1))
-
-(defmethod display ((trigger releaser))
-  (color `(:alpha ,(alpha trigger) :foreground))
-  (csq 0.1))
-
 (defclass helper (square-trigger global-trigger invisible)
   ((text :initarg :text
          :accessor text
@@ -86,14 +60,6 @@
 
 (defmethod trigger ((helper helper))
   (set-title (text helper)))
-
-(defmethod delta-microstep ((trigger releaser) delta)
-  (setf (counter trigger)
-        (mod (+ (counter trigger)
-                (/ delta internal-time-units-per-second 1/16))
-             #.(* 2 pi)))
-  (setf (alpha trigger)
-        (- 1 (abs (/ (sin (counter trigger)) 6)))))
 
 (defclass start-trigger (named-trigger
                          has-location
@@ -135,7 +101,7 @@
                 (/ dt internal-time-units-per-second 1/6))
              #.(* 2 pi))))
 
-(defmethod display((vanisher vanisher))
+(defmethod display ((vanisher vanisher))
   (let* ((pulse (+ (offset vanisher) (pulse vanisher)))
          (intensity (+ 0.3 (/ (sin pulse) 5)))
          (y 1)
@@ -174,16 +140,31 @@
 ;;;;;
 ;;;;;
 
-(defun parse-action (expression level)
-  (optima:ematch expression
-    ((list* :release names)
-     (lambda ()
-       (dolist (name names)
-         (release level name))))
-    ((list* :trigger names)
-     (lambda ()
-       (dolist (name names)
-         (trigger-by-name name level))))))
+(defparameter *actions* (make-hash-table :test #'equalp))
+(defparameter *dispatcher-function* 'parse-action)
+
+(defmacro defaction (pattern (level-var) &body body)
+  (setf (gethash pattern *actions*) (list level-var body))
+  (let ((expression (copy-symbol :expression))
+        (level (copy-symbol :level)))
+    `(defun ,*dispatcher-function* (,expression ,level)
+       (check-type ,level level)
+       (optima:ematch ,expression
+         ,@(loop
+             for (pattern level-var body) in (hash-table-alist *actions*)
+             collect (list pattern
+                           `(compile
+                             nil
+                             (lambda (&aux (,level-var ,level))
+                               ,@body))))))))
+
+(defaction (list* :trigger names) (level)
+  (dolist (name names)
+    (trigger-by-name name level)))
+
+(defaction (list* :release names) (level)
+  (dolist (name names)
+    (release level name)))
 
 (defclass invisible-blocker (has-location
                              immaterial
@@ -281,13 +262,18 @@
 
 (defgeneric game-loop (game)
   (:method (game)
-    (do-match-events (:method :poll)
-      (with-key-down-event (_ :keysym keysym)
-        (game-command game (keybind (scancode-value keysym) game)))
-      (with-window-event-resized (_ :width width :height height)
-        (resize-game game width height))
-      (:quit () (return))
-      (:idle () (game-idle game)))))
+    (flet ((command (k) (keybind (scancode-value k) game)))
+      (do-match-events (:method :poll)
+        (with-key-up-event (_ :keysym keysym :repeat repeat)
+          (when (zerop repeat)
+            (game-cancel-command game (command keysym))))
+        (with-key-down-event (_ :keysym keysym :repeat repeat)
+          (when (zerop repeat)
+            (game-command game (command keysym))))
+        (with-window-event-resized (_ :width width :height height)
+          (resize-game game width height))
+        (:quit () (return))
+        (:idle () (game-idle game))))))
 
 (defvar *display* 0)
 
@@ -354,6 +340,10 @@
   (:method (game command) nil)
   (:method (game (command function)) (funcall command)))
 
+(defgeneric game-cancel-command (game command)
+  (:method (game command))
+  (:documentation "Called when an ongoing action should be canceled"))
+
 (defclass locked ()
   ((lock :initform (bt:make-lock) :reader lock)))
 
@@ -364,10 +354,61 @@
 
 ;;;; MARCHING-SQUARES
 
+(defstruct square-input
+  ;; direction on x-axis, retained from one step to another
+  (direction 0)
+  ;; last "pressed" direction in current step
+  (command 0)
+  ;; last "unpressed" direction in current step
+  (stop 0))
+
+(defmethod game-command ((input square-input) (command (eql :go-left)))
+  (setf (square-input-direction input) -1)
+  (decf (square-input-command input)))
+
+(defmethod game-command ((input square-input) (command (eql :go-right)))
+  (setf (square-input-direction input) 1)
+  (incf (square-input-command input)))
+
+(defmethod game-cancel-command ((input square-input) (command (eql :go-left)))
+  (decf (square-input-stop input)))
+
+(defmethod game-cancel-command ((input square-input) (command (eql :go-right)))
+  (incf (square-input-stop input)))
+
+(let (#+ms-debug
+      (last nil))
+  (defun square-input-step (inputs)
+    (let ((d (square-input-direction inputs))
+          (s (square-input-stop inputs))
+          (c (square-input-command inputs)))
+      (setf (square-input-command inputs) 0)
+      (let ((actual-direction
+              (ecase (cond
+                       ((zerop d) 0)
+                       ((zerop s) d)
+                       ((zerop c) 0)
+                       (t d))
+                (0 nil)
+                (1 :right)
+                (-1 :left))))
+        (when (and (not (zerop s))
+                   (= (signum s) (signum d)))
+          (setf (square-input-direction inputs) 0))
+        (setf (square-input-stop inputs) 0)
+        #+ms-debug
+        (let ((debug `(:d ,d :s ,s :c ,c :=> ,actual-direction)))
+          (unless (equalp debug last)
+            (print debug))
+          (shiftf last debug))
+        actual-direction))))
+
 (defclass marching-squares (has-palette
                             game
                             locked)
-  ()
+  ((input-state
+    :accessor input-state
+    :initform (make-square-input)))
   (:default-initargs
    :direction nil
    :title "Marching squares"
@@ -411,12 +452,17 @@
 
 (defmethod game-command ((game marching-squares) (command symbol))
   (case command
-    ;; (:break (break))
     (:restart-loop (restart-game-loop))
-    (:go-left (setf (direction game) :left))
-    (:go-right (setf (direction game) :right))
+    ((:go-left :go-right)
+     (game-command (input-state game) command))
     (:restart (restart-game-loop))
     (:restart-graphics (signal 'restart-window))))
+
+(defmethod game-cancel-command ((game marching-squares)
+                                (command symbol))
+  (case command
+    ((:go-left :go-right)
+     (game-cancel-command (input-state game) command))))
 
 (defmethod arbiter-compare
     ((arbiter marching-squares) location first second)
@@ -569,11 +615,11 @@
   (trigger (triggers object))
   (call-next-method))
 
-(defmethod propagate-inputs ((game game))
-  (let ((direction (direction game)))
-    (dogroup (mobile (mobiles game))
-      (setf (direction mobile) direction)))
-  (setf (direction game) nil))
+(defmethod propagate-inputs ((game marching-squares))
+  (let ((state (input-state game)))
+    (let ((direction (square-input-step state)))
+      (dogroup (mobile (mobiles game))
+        (setf (direction mobile) direction)))))
 
 (defmethod allow-move-p (mobile (wall (eql :wall))) nil)
 

@@ -23,8 +23,8 @@
   (:method (name (namespace namespace))
     (gethash name (index namespace))))
 
-(defmethod reinitialize-instance :after
-    ((object namespace) &key &allow-other-keys)
+(defmethod reinitialize-instance :after ((object namespace)
+                                         &key &allow-other-keys)
   (clrhash (index object)))
 
 (defmethod print-object ((object has-name) stream)

@@ -23,6 +23,8 @@
 
 (start-game *game*)
 
+(setf (input-state *game*) (make-square-input))
+
 ;; (allow-move-p 
 ;;  (first (objects-at (loc (game-level *game*) 28 21)))
 ;;  (first (objects-at (loc (game-level *game*) 28 22))))

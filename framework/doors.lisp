@@ -82,15 +82,15 @@
     (gl:rect min-x min-y max-x max-y)
     (gl:rect (- 1 min-x) min-y (- 1 max-x) max-y)))
 
-(defmethod display ((door press-door)))
-(let ((ratio (openness-ratio (openness door))))
-  (prog1 ratio
-    (color :wall)
-    (draw-door 0 0 6/20 ratio)
-    (color (if (pressedp door)
-               :flash/feedback
-               :foreground))
-    (draw-door 5/100 0 3/20 ratio)))
+(defmethod display ((door press-door))
+  (let ((ratio (openness-ratio (openness door))))
+    (prog1 ratio
+      (color :wall)
+      (draw-door 0 0 6/20 ratio)
+      (color (if (pressedp door)
+                 :flash/feedback
+                 :foreground))
+      (draw-door 5/100 0 3/20 ratio))))
 
 (defmethod display ((door door))
   (let ((ratio (openness-ratio (openness door))))
