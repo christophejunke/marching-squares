@@ -2,6 +2,7 @@
   (:use
    :bricabrac.sdl2.event-loop
    :cl
+   :optima
    :alexandria)
   (:import-from :sdl2
                 #:set-render-draw-color
@@ -12,9 +13,7 @@
                 #:with-gl-context
                 #:with-renderer
                 #:with-event-loop
-                #:gl-make-current)
-  (:import-from :trivia
-                #:match))
+                #:gl-make-current))
 
 (in-package :marching-squares)
 
@@ -354,6 +353,115 @@
 
 ;;;; MARCHING-SQUARES
 
+;; recorded inputs 
+(defclass input-sequence ()
+  ((inputs :initarg :inputs :accessor inputs :initform nil)
+   (counter :initform 0 :accessor counter)))
+
+(let ((data (list (list :a -3))))
+  (prog1 data
+    (optima:match data
+      ((list (list (place a)
+                   (guard (place b)
+                          (typep b '(integer 0)))))
+       (decf b)))))
+
+(defmethod update ((state input-sequence))
+  (with-accessors ((counter counter) (inputs inputs)) state
+    (loop
+      (if inputs
+          (let ((top (first inputs)))
+            (optima:ematch top
+              ((list (and (or nil :left :right) direction)
+                     (guard count (typep count '(integer 0))))
+               (cond
+                 ((zerop count)
+                  (pop inputs))
+                 ((= count counter)
+                  (setf counter 0)
+                  (pop inputs))
+                 (t
+                  (incf counter)
+                  (return direction))))
+              ((or nil :left :right)
+               (return (pop inputs)))
+              ((or :wait (list :wait :stability))
+               (cond
+                 ((notevery (lambda (u) (eq (next-move u) nil))
+                            (items (mobiles *game*)))
+                  (setf counter 0)
+                  (return nil))
+                 ((= (incf counter) 1)
+                  (setf counter 0)
+                  (pop inputs))
+                 (t (return nil))))))
+          (return nil)))))
+
+(map 'list #'next-move (items (mobiles *game*)))
+
+(setf (input-state *game*)
+      (make-instance 'square-input))
+
+(setf (input-state *game*)
+      (make-instance 'input-sequence
+                     :inputs
+                     '(:left
+                       :left
+                       :left
+                       :wait
+                       :wait
+                       (:right 8)
+                       :wait
+                       (:right 3)
+                       (:left 5)
+                       :wait
+                       (:right 5)
+                       (:right 6)
+                       :wait
+                       :right
+                       (:left 4)
+                       nil
+                       nil)))
+
+(setf *grid* nil)
+
+(setf (input-state *game*)
+      (make-instance 'input-sequence
+                     :inputs
+                     '(:left
+                       :left
+                       :left
+                       :wait
+                       nil
+                       :wait
+                       (:right 8)
+                       :wait
+                       (:left 11)
+                       (:right 29)
+                       (:left 7)
+                       (nil 3)
+                       :left
+                       nil
+                       :left
+                       nil
+                       :left
+                       nil
+                       :left
+                       (nil 4)
+                       (:left 6)
+                       (nil 3)
+                       :left
+                       (:right 4)
+                       (nil 4)
+                       (:right 7)
+                       :wait
+                       nil
+                       :wait
+                       :left)))
+
+
+;; manual inputs
+
 (defstruct square-input
   ;; direction on x-axis, retained from one step to another
   (direction 0)
@@ -408,7 +516,8 @@
                             locked)
   ((input-state
     :accessor input-state
-    :initform (make-square-input)))
+    :initform (make-square-input))
+   (extra :initform nil :accessor extra))
   (:default-initargs
    :direction nil
    :title "Marching squares"
@@ -520,6 +629,15 @@
           (display game)
           (sleep (sleep-delay game))))))
 
+;; TESTS
+;;
+;; (defmethod display ((surface sdl2-ffi:sdl-surface))
+;;   (sdl2:with-rects ((rect 0
+;;                           0
+;;                           (sdl2:surface-width surface)
+;;                           (sdl2:surface-height surface)))
+;;     (sdl2:blit-surface surface rect *window* rect)))
+
 (defmethod display ((game marching-squares))
   (display (game-level game)))
 
@@ -615,9 +733,12 @@
   (trigger (triggers object))
   (call-next-method))
 
+(defmethod update ((state square-input))
+  (square-input-step state))
+
 (defmethod propagate-inputs ((game marching-squares))
   (let ((state (input-state game)))
-    (let ((direction (square-input-step state)))
+    (let ((direction (update state)))
       (dogroup (mobile (mobiles game))
         (setf (direction mobile) direction)))))
 
