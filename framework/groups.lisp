@@ -76,17 +76,18 @@
            (when ,some-garbage
              (group-purge ,group-place)))))))
 
-(defmacro dogroup ((var group &optional result) &body body)
-  (with-gensyms (max idx vec)
-    `(with-garbage-handler ,group
-       (do* (,var
-             (,vec (items ,group))
-             (,max (length ,vec))
-             (,idx 0 (1+ ,idx)))
-            ((>= ,idx ,max) ,result)
-         (setf ,var (aref ,vec ,idx))
-         (unless-garbagep ,var
-           ,@body)))))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defmacro dogroup ((var group &optional result) &body body)
+    (with-gensyms (max idx vec)
+      `(with-garbage-handler ,group
+         (do* (,var
+               (,vec (items ,group))
+               (,max (length ,vec))
+               (,idx 0 (1+ ,idx)))
+              ((>= ,idx ,max) ,result)
+           (setf ,var (aref ,vec ,idx))
+           (unless-garbagep ,var
+             ,@body))))))
 
 (defun group-p (item)
   (typep item 'group))

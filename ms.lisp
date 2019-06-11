@@ -1,24 +1,4 @@
-(defpackage :marching-squares
-  (:use
-   :bricabrac.sdl2.event-loop
-   :cl
-   :optima
-   :alexandria)
-  (:import-from :sdl2
-                #:set-render-draw-color
-                #:scancode-key-to-value
-                #:scancode-value
-                #:with-init
-                #:with-window
-                #:with-gl-context
-                #:with-renderer
-                #:with-event-loop
-                #:gl-make-current))
-
 (in-package :marching-squares)
-
-;; size (better if multiple of 10)
-(defparameter *size* 30)
 
 (defvar *gl*)
 (defvar *window*)
@@ -139,23 +119,23 @@
 ;;;;;
 ;;;;;
 
-(defparameter *actions* (make-hash-table :test #'equalp))
-(defparameter *dispatcher-function* 'parse-action)
-
-(defmacro defaction (pattern (level-var) &body body)
-  (setf (gethash pattern *actions*) (list level-var body))
-  (let ((expression (copy-symbol :expression))
-        (level (copy-symbol :level)))
-    `(defun ,*dispatcher-function* (,expression ,level)
-       (check-type ,level level)
-       (optima:ematch ,expression
-         ,@(loop
-             for (pattern level-var body) in (hash-table-alist *actions*)
-             collect (list pattern
-                           `(compile
-                             nil
-                             (lambda (&aux (,level-var ,level))
-                               ,@body))))))))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter *actions* (make-hash-table :test #'equalp))
+  (defparameter *dispatcher-function* 'parse-action)
+  (defmacro defaction (pattern (level-var) &body body)
+    (setf (gethash pattern *actions*) (list level-var body))
+    (let ((expression (copy-symbol :expression))
+          (level (copy-symbol :level)))
+      `(defun ,*dispatcher-function* (,expression ,level)
+         (check-type ,level level)
+         (optima:ematch ,expression
+           ,@(loop
+               for (pattern level-var body) in (hash-table-alist *actions*)
+               collect (list pattern
+                             `(compile
+                               nil
+                               (lambda (&aux (,level-var ,level))
+                                 ,@body)))))))))
 
 (defaction (list* :trigger names) (level)
   (dolist (name names)
@@ -397,68 +377,67 @@
                  (t (return nil))))))
           (return nil)))))
 
-(map 'list #'next-move (items (mobiles *game*)))
+;; (map 'list #'next-move (items (mobiles *game*)))
 
-(setf (input-state *game*)
-      (make-instance 'square-input))
+;; (setf (input-state *game*)
+;;       (make-instance 'square-input))
 
-(setf (input-state *game*)
-      (make-instance 'input-sequence
-                     :inputs
-                     '(:left
-                       :left
-                       :left
-                       :wait
-                       :wait
-                       (:right 8)
-                       :wait
-                       (:right 3)
-                       (:left 5)
-                       :wait
-                       (:right 5)
-                       (:right 6)
-                       :wait
-                       :right
-                       (:left 4)
-                       nil
-                       nil)))
+;; (setf (input-state *game*)
+;;       (make-instance 'input-sequence
+;;                      :inputs
+;;                      '(:left
+;;                        :left
+;;                        :left
+;;                        :wait
+;;                        :wait
+;;                        (:right 8)
+;;                        :wait
+;;                        (:right 3)
+;;                        (:left 5)
+;;                        :wait
+;;                        (:right 5)
+;;                        (:right 6)
+;;                        :wait
+;;                        :right
+;;                        (:left 4)
+;;                        nil
+;;                        nil)))
 
-(setf *grid* nil)
+;; (setf *grid* nil)
 
-(setf (input-state *game*)
-      (make-instance 'input-sequence
-                     :inputs
-                     '(:left
-                       :left
-                       :left
-                       :wait
-                       nil
-                       :wait
-                       (:right 8)
-                       :wait
-                       (:left 11)
-                       (:right 29)
-                       (:left 7)
-                       (nil 3)
-                       :left
-                       nil
-                       :left
-                       nil
-                       :left
-                       nil
-                       :left
-                       (nil 4)
-                       (:left 6)
-                       (nil 3)
-                       :left
-                       (:right 4)
-                       (nil 4)
-                       (:right 7)
-                       :wait
-                       nil
-                       :wait
-                       :left)))
-
+;; (setf (input-state *game*)
+;;       (make-instance 'input-sequence
+;;                      :inputs
+;;                      '(:left
+;;                        :left
+;;                        :left
+;;                        :wait
+;;                        nil
+;;                        :wait
+;;                        (:right 8)
+;;                        :wait
+;;                        (:left 11)
+;;                        (:right 29)
+;;                        (:left 7)
+;;                        (nil 3)
+;;                        :left
+;;                        nil
+;;                        :left
+;;                        nil
+;;                        :left
+;;                        nil
+;;                        :left
+;;                        (nil 4)
+;;                        (:left 6)
+;;                        (nil 3)
+;;                        :left
+;;                        (:right 4)
+;;                        (nil 4)
+;;                        (:right 7)
+;;                        :wait
+;;                        nil
+;;                        :wait
+;;                        :left)))
 
 ;; manual inputs
 
@@ -821,5 +800,6 @@
                (#\^ . (:door door-4))
                (#\: . (:door door-5)))))
 
-
-
+(defparameter *game*
+  (make-instance 'marching-squares
+                 :level-blueprint 'intro-level))
