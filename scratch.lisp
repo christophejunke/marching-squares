@@ -687,3 +687,83 @@
   for loc = (loc (game-level *game*) 29 i)
   do (map () (lambda (u) (change-class u 'garbage))
           (remove-if-not #'squarep (objects-at loc))))
+
+
+;; NO: e.g. prepare next blueprint while level is playing
+;;
+;; (defmethod (setf level-blueprint) :after ((blueprint has-dimensions)
+;;                                           (game game))
+;;   (setf (width game) (width blueprint)
+;;         (height game) (height blueprint)))
+
+
+(map 'list #'next-move (items (mobiles *game*)))
+
+(setf (input-state *game*)
+      (make-instance 'square-input))
+
+(setf (input-state *game*)
+      (make-instance 'input-sequence
+                     :inputs
+                     '(:left
+                       :left
+                       :left
+                       :wait
+                       :wait
+                       (:right 8)
+                       :wait
+                       (:right 3)
+                       (:left 5)
+                       :wait
+                       (:right 5)
+                       (:right 6)
+                       :wait
+                       :right
+                       (:left 4)
+                       nil
+                       nil)))
+
+(setf *grid* nil)
+
+(setf (input-state *game*)
+      (make-instance 'input-sequence
+                     :inputs
+                     '(:left
+                       :left
+                       :left
+                       :wait
+                       nil
+                       :wait
+                       (:right 8)
+                       :wait
+                       (:left 11)
+                       (:right 29)
+                       (:left 7)
+                       (nil 3)
+                       :left
+                       nil
+                       :left
+                       nil
+                       :left
+                       nil
+                       :left
+                       (nil 4)
+                       (:left 6)
+                       (nil 3)
+                       :left
+                       (:right 4)
+                       (nil 4)
+                       (:right 7)
+                       :wait
+                       nil
+                       :wait
+                       :left)))
+
+;; TESTS
+;;
+;; (defmethod display ((surface sdl2-ffi:sdl-surface))
+;;   (sdl2:with-rects ((rect 0
+;;                           0
+;;                           (sdl2:surface-width surface)
+;;                           (sdl2:surface-height surface)))
+;;     (sdl2:blit-surface surface rect *window* rect)))

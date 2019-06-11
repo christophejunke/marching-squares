@@ -334,24 +334,17 @@
 ;;;; MARCHING-SQUARES
 
 ;; recorded inputs 
+
 (defclass input-sequence ()
   ((inputs :initarg :inputs :accessor inputs :initform nil)
    (counter :initform 0 :accessor counter)))
-
-(let ((data (list (list :a -3))))
-  (prog1 data
-    (optima:match data
-      ((list (list (place a)
-                   (guard (place b)
-                          (typep b '(integer 0)))))
-       (decf b)))))
 
 (defmethod update ((state input-sequence))
   (with-accessors ((counter counter) (inputs inputs)) state
     (loop
       (if inputs
           (let ((top (first inputs)))
-            (optima:ematch top
+            (ematch top
               ((list (and (or nil :left :right) direction)
                      (guard count (typep count '(integer 0))))
                (cond
@@ -376,68 +369,6 @@
                   (pop inputs))
                  (t (return nil))))))
           (return nil)))))
-
-;; (map 'list #'next-move (items (mobiles *game*)))
-
-;; (setf (input-state *game*)
-;;       (make-instance 'square-input))
-
-;; (setf (input-state *game*)
-;;       (make-instance 'input-sequence
-;;                      :inputs
-;;                      '(:left
-;;                        :left
-;;                        :left
-;;                        :wait
-;;                        :wait
-;;                        (:right 8)
-;;                        :wait
-;;                        (:right 3)
-;;                        (:left 5)
-;;                        :wait
-;;                        (:right 5)
-;;                        (:right 6)
-;;                        :wait
-;;                        :right
-;;                        (:left 4)
-;;                        nil
-;;                        nil)))
-
-;; (setf *grid* nil)
-
-;; (setf (input-state *game*)
-;;       (make-instance 'input-sequence
-;;                      :inputs
-;;                      '(:left
-;;                        :left
-;;                        :left
-;;                        :wait
-;;                        nil
-;;                        :wait
-;;                        (:right 8)
-;;                        :wait
-;;                        (:left 11)
-;;                        (:right 29)
-;;                        (:left 7)
-;;                        (nil 3)
-;;                        :left
-;;                        nil
-;;                        :left
-;;                        nil
-;;                        :left
-;;                        nil
-;;                        :left
-;;                        (nil 4)
-;;                        (:left 6)
-;;                        (nil 3)
-;;                        :left
-;;                        (:right 4)
-;;                        (nil 4)
-;;                        (:right 7)
-;;                        :wait
-;;                        nil
-;;                        :wait
-;;                        :left)))
 
 ;; manual inputs
 
@@ -569,13 +500,6 @@
   (setf (keybind :scancode-f2 game) :restart-loop)
   (setf (keybind :scancode-f3 game) :break))
 
-;; NO: e.g. prepare next blueprint while level is playing
-;;
-;; (defmethod (setf level-blueprint) :after ((blueprint has-dimensions)
-;;                                           (game game))
-;;   (setf (width game) (width blueprint)
-;;         (height game) (height blueprint)))
-
 (defparameter *test-level* nil)
 
 (defmethod game-loop :before ((game marching-squares))
@@ -607,15 +531,6 @@
         (progn
           (display game)
           (sleep (sleep-delay game))))))
-
-;; TESTS
-;;
-;; (defmethod display ((surface sdl2-ffi:sdl-surface))
-;;   (sdl2:with-rects ((rect 0
-;;                           0
-;;                           (sdl2:surface-width surface)
-;;                           (sdl2:surface-height surface)))
-;;     (sdl2:blit-surface surface rect *window* rect)))
 
 (defmethod display ((game marching-squares))
   (display (game-level game)))
@@ -674,24 +589,9 @@
   (call-next-method)
   (arbiter-moves arbiter (mobiles arbiter)))
 
-;; (defmethod update :after ((arbiter move-arbiter))
-;;   (arbiter-moves arbiter (mobiles arbiter)))
-
 (defmethod update ((object has-active-objects))
   (update (active-objects object))
   (call-next-method))
-
-;; ;; override any order existing from applicable method
-;; (defmethod update ((game game))
-;;   (propagate-inputs game)
-;;   (update (mobiles game))
-;;   ;;; ????!!!!
-;;   (trigger (remove-if (lambda (u) (typep u 'button-group))
-;;                       (items (triggers *game*))))
-;;   (arbiter-moves game (mobiles game))
-;;   (update (active-objects game))
-;;   (trigger (triggers game))
-;;   (update (game-level game)))
 
 ;; override any order existing from applicable method
 (defmethod update ((game game))
@@ -742,8 +642,6 @@
                           (when (and (allow-move-p square ne)
                                      (allow-move-p square e))
                             (values :right e)))))))))))
-
-;;(setf (level-blueprint *game*) *intro-level*)
 
 (defparameter *ramping-level*
   (make-instance
