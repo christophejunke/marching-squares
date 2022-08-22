@@ -1,0 +1,65 @@
+// configuration
+
+package ms.level.first-steps
+title   first steps
+width   31
+height  31
+
+
+
+// bindings
+
+b release x
+B blocked-square x
+
+e release y
+E blocked-square y
+
+f release z
+F blocked-square z
+
+@ win
+8 invert
+
+V start
+H help
+
+- door 1
+= door 2
+~ door 3
+^ door 4
+: door 5
+
+// map
+
+               V
+
+
+           #H#######-#####
+           ######### #####
+                       ###
+             #####  b  ###
+             ##B##     ###
+                       ###
+                       ###
+     ########=###=########
+     ###       #
+               #       8
+     #########:#:#########
+
+
+ # ########~########~####### #
+           e###E#
+
+           ##     ######
+                #
+          #### ##  #
+                 #       XXXXX
+           ##     8#
+         #    ##8#
+           # ###   #
+          #      #
+                 #
+      ###^###^#####^##
+
+XXXXXXXXX@XXX@XXXXX@XXXXXXXXXXXXXXXXXXX
