@@ -6,11 +6,6 @@
 (deftype openness ()
   '(real 0 1))
 
-(defmethod initialize-instance :after
-    ((object has-group) &key group &allow-other-keys)
-  (when group
-    (group-add object group)))
-
 (defclass door (has-location
                 has-group)
   ((state :accessor state

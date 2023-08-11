@@ -93,13 +93,20 @@
     (change-class object 'garbage)))
 
 (progn
-  (defun objects-at (location)
-    (ensure-list
-     #1=(aref (level-array (level location))
-           (row location)
-           (col location))))
-  (defun (setf objects-at) (value location)
-    (setf #1# (ensure-list value))))
+  (defgeneric objects-at (location)
+    (:method ((object has-location))
+      (objects-at (location object)))
+    (:method ((location loc))
+      (ensure-list
+          #1=(aref (level-array (level location))
+                   (row location)
+                   (col location)))))
+  
+  (defgeneric (setf objects-at) (value location)
+    (:method (value (object has-location))
+      (setf (objects-at (location object)) value))
+    (:method (value (location loc))
+      (setf #1# (ensure-list value)))))
 
 (defmethod allow-move-p (mobile (location loc))
   (let ((target (objects-at location)))

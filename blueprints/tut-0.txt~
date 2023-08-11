@@ -1,0 +1,45 @@
+b = trigger release x
+B = blocked-square x
+e = trigger release y
+E = blocked-square y
+f = trigger release z
+F = blocked-square z
+/ = invisible-blocker
+X = trigger lose
+@ = trigger win
+8 = trigger invert
+V = start
+H = help "Press Esc to restart level"
+---                                  
+               V                     
+                                     
+#####################################
+     ####### #############        
+     ###               ###        
+   #H###               ###        
+   #################   ###        
+             #####     ###        
+             ##B##  b  ###        
+                       ###        
+                       ###        
+     ########=###=########        
+     ###       #                  
+     ###       #      8           
+     #########:#:#########        
+                                  
+                                  
+   ########~########~#######      
+     #     e###E#        #        
+ #H#                ?      #H#    
+ ###       ##     ######H# ###    
+ ###            #  ####### ###    
+          #### ##  ## /           
+                 # ## /  XXXXX    
+           ##     8## /           
+         #    ##8# ## /           
+           # #     ## /       /   
+          #      #    /       /   
+/       /        #    /       /   
+ ####H###^#H#^#####^####H##### ## 
+ ########@###@#####@########## ## 
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

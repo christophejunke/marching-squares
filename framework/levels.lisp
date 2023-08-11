@@ -12,8 +12,7 @@
 
 (defvar *default-bindings*
   '((#\space . nil)
-    (#\# . :wall)
-    (#\- . :door)))
+    (#\# . :wall)))
 
 (loop for (symbols dx dy) in '(((:northwest :nw) -1 -1)
                                ((:north     :n)   0 -1)
@@ -91,22 +90,23 @@
       (dolist (entry triggers)
         (incorporate game (build entry game)))
       (prog1 level
-        (dotimes (row height)
+	(dotimes (row height)
           (dotimes (col width)
             (let ((location (loc level row col)))
-              (incorporate location
+	      (incorporate location
                            (build (ignore-errors
                                    (aref (aref rows row) col))
                                   location)))))
-        (when-let ((hook (start-hook blueprint)))
+	(when-let ((hook (start-hook blueprint)))
           (funcall hook level))
-        (set-title (format nil "~a ― ~a" (title game) (name level)))))))
+        (set-title (format nil "~a" (or (name level)
+                                        (title game))))))))
 
 (defmethod build ((item character) (location loc))
   (flet ((retrieve-from (alist)
            (let ((entry (assoc item alist)))
-             (and entry
-                  (build (cdr entry) location)))))
+             (when entry
+               (build (cdr entry) location)))))
     (or (retrieve-from (bindings (blueprint (level location))))
         (retrieve-from *default-bindings*))))
 
@@ -119,10 +119,12 @@
 (defmethod microstep ((level level) ratio)
   (let ((array (level-array level)))
     (dotimes (i (array-total-size array))
-      (microstep (row-major-aref array i) ratio))))
+      (let ((value (row-major-aref array i)))
+        (when value
+          (microstep value ratio))))))
 
 (defmethod display ((level level))
-  (apply #'gl:clear-color (eval-color :background))
+  (apply #'gl:clear-color (eval-color :outside))
   (gl:clear :color-buffer :depth-buffer)
   (map () #'display (layers level)))
 

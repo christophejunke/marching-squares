@@ -15,10 +15,13 @@
 
 (defgeneric display (element)
   (:method (_))
+  (:method ((_ (eql :empty)))
+    (color :background)
+    (gl:rect 0 0 1 1))
   (:method :around ((invisible invisible)))
   (:method ((stack cons))
     (destructuring-bind (head . tail) stack
-      (display tail)
+      (when tail (display tail))
       (display head))))
 
 (defclass solid () ())

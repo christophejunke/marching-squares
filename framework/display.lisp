@@ -2,6 +2,9 @@
 
 (defclass layer () ())
 
+(defclass has-layer ()
+  ((layer% :initarg :layer :accessor has-layer/layer)))
+
 (defclass grid-layer (layer)
   ((grid :reader layer-grid :writer (setf layer-grid%))))
 
@@ -9,6 +12,20 @@
   ((sequence :accessor layer-sequence
              :initform nil
              :initarg :sequence)))
+
+(defclass layer-stack ()
+  ((default-layer :accessor default-layer
+                  :initform :background)
+   (layers :accessor layers))
+  (:default-initargs
+   :specifications 
+   '((:BACKGROUND :GRID)
+     :STATIC
+     :TRIGGERS
+     :MOBILES
+     :OVERLAY)))
+
+;;
 
 (defmethod initialize-instance :after ((layer grid-layer)
                                        &key dimensions &allow-other-keys)
@@ -56,9 +73,6 @@
 (defun find-layer (stack symbol)
   (cdr (assoc symbol (layers stack))))
 
-(defclass has-layer ()
-  ((layer% :initarg :layer :accessor has-layer/layer)))
-
 (defgeneric layer (stack object)
   (:method ((stack layer-stack) (object invisible)) nil)
   (:method ((stack layer-stack) object)
@@ -80,18 +94,6 @@
 (defun make-layers (specifications dimensions)
   (mapcar (rcurry #'make-layer-from-specification dimensions)
           specifications))
-
-(defclass layer-stack ()
-  ((default-layer :accessor default-layer
-                  :initform :background)
-   (layers :accessor layers))
-  (:default-initargs
-   :specifications 
-   '((:BACKGROUND :GRID)
-     :STATIC
-     :TRIGGERS
-     :MOBILES
-     :OVERLAY)))
 
 (defmethod incorporate progn ((stack layer-stack) object)
   (layer-add (layer stack object) object *incorporate-location*))
@@ -140,10 +142,12 @@
     (dotimes (row rows)
       (dotimes (col cols)
         (let ((cell (aref array row col)))
-          (when cell
-            (with-location-transform (:row row :col col)
-              (display cell))))))))
+          (with-location-transform (:row row :col col)
+            (display :empty)
+            (display cell)))))))
 
 (defun colrect (color x y w h)
   (color color)
   (gl:rect x y w h))
+
+

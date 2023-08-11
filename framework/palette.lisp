@@ -1,10 +1,13 @@
 (in-package :marching-squares)
 
-(defparameter *palettes* nil)
+(defparameter *palettes* nil
+  "Association list of palettes")
 
 (defparameter *palette*
   '((:background 0.4 0.4 0.5 1)
+    (:outside . :wall)
     (:wall 0 0 0 1)
+    (:help 1 1 0 0.5)
     (:square 1 1 1 1)
     (:flash/feedback 1 1 1 1)
     (:inverted-square 0 0 0 1)
@@ -104,7 +107,7 @@
 
 (defmethod call-within-group-context :around ((object has-name)
                                               (function function))
-  (if-let (palette (assoc (name object) *palettes*))
+  (if-let (palette (assoc (name object) *palettes* :test #'equalp))
     (let ((*palette* (cdr palette)))
       (call-next-method))
     (call-next-method)))

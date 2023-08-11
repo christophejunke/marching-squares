@@ -16,10 +16,23 @@
 (defclass trigger (has-layer) ()
   (:default-initargs :layer :triggers))
 
-(defclass global-trigger (trigger) ())
+(defclass global-trigger (trigger) ()
+  (:documentation
+   "Global triggers support INCORPORATE and EXTRACT-FROM."))
+
+(defclass triggerable-by-predicate (trigger)
+  ((predicate :accessor predicate
+              :initarg :predicate
+              :initarg :test
+              :initform (constantly nil)))
+  (:documentation
+   "Trigger that delegates to a predicate of one parameter (itself) ~
+      to compute TRIGGERABLE."))
 
 (defgeneric triggerable (trigger)
-  (:method (_) t))
+  (:method (_) t)
+  (:method ((o triggerable-by-predicate))
+    (funcall (predicate o) o)))
 
 (defgeneric trigger (trigger)
   (:method (anything))

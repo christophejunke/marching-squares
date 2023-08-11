@@ -1,7 +1,8 @@
 (defpackage :marching-squares
   (:use
-   :bricabrac.sdl2.event-loop
    :cl
+   :bricabrac.sdl2.event-loop
+   ;; :bricabrac.docstrings
    :optima
    :alexandria)
   (:import-from :sdl2

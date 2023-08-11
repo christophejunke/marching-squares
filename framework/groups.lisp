@@ -28,14 +28,6 @@
                  (name group))
             (items group))))
 
-(defmethod (setf location) ((location (eql :trash)) (object group))
-  (dogroup (x object)
-    (setf (location x) :trash))
-  (call-next-method))
-
-;; (defmethod extract-from ((level level) (object has-group))
-;;   (group-remove object (group object)))
-
 (defclass named-group (has-name group) ())
 
 (defun group-add (object group &aux (vec (items group)))
@@ -44,7 +36,7 @@
       (vector-push-extend object vec)))
 
 (defun group-remove (object group &aux (vec (items group)))
-  (setf (items% group) (delete object vec)))
+  (setf (items% group) (remove object vec)))
 
 (defun group-clear (group)
   (setf (items% group) (make-group-vector% nil)))
@@ -76,18 +68,23 @@
            (when ,some-garbage
              (group-purge ,group-place)))))))
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defmacro dogroup ((var group &optional result) &body body)
-    (with-gensyms (max idx vec)
-      `(with-garbage-handler ,group
-         (do* (,var
-               (,vec (items ,group))
-               (,max (length ,vec))
-               (,idx 0 (1+ ,idx)))
-              ((>= ,idx ,max) ,result)
-           (setf ,var (aref ,vec ,idx))
-           (unless-garbagep ,var
-             ,@body))))))
+(defmacro dogroup ((var group &optional result) &body body)
+  (with-gensyms (max idx vec)
+    `(with-garbage-handler ,group
+       (do* (,var
+             (,vec (items ,group))
+             (,max (length ,vec))
+             (,idx 0 (1+ ,idx)))
+            ((>= ,idx ,max) ,result)
+         (setf ,var (aref ,vec ,idx))
+         (unless-garbagep ,var
+           ,@body)))))
+
+(defmethod (setf location) ((location (eql :trash)) (object group))
+  (dogroup (x object)
+    (setf (location x) :trash))
+  (call-next-method))
+
 
 (defun group-p (item)
   (typep item 'group))

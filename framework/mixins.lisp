@@ -37,11 +37,6 @@
 
 ;;;; PALETTE
 
-(defclass has-palette ()
-  ((palette :accessor palette :initarg :palette)))
-
-(defstruct (rgba (:constructor rgba (r g b &optional (a 1)))) r g b a)
-
 (defgeneric pick-color (palette color &key &allow-other-keys)
   (:method ((palette null) (color null) &key r g b a &allow-other-keys)
     (rgba r g b a)))

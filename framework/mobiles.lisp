@@ -63,14 +63,15 @@
       (destructuring-bind (object . move-type) winner
         (authorize-move object move-type location)))))
 
-(defmacro within-arbiter-context (arbiter &body body)
-  (once-only (arbiter)
-    `(progn
-       (clrhash (move-intents ,arbiter))
-       (setf (inside-arbiter-p ,arbiter) t)
-       (unwind-protect (progn ,@body)
+(eval-when (:compile-toplevel)
+  (defmacro within-arbiter-context (arbiter &body body)
+    (once-only (arbiter)
+      `(progn
          (clrhash (move-intents ,arbiter))
-         (setf (inside-arbiter-p ,arbiter) nil)))))
+         (setf (inside-arbiter-p ,arbiter) t)
+         (unwind-protect (progn ,@body)
+           (clrhash (move-intents ,arbiter))
+           (setf (inside-arbiter-p ,arbiter) nil))))))
 
 (defgeneric arbiter-moves (arbiter mobiles)
   (:method ((arbiter move-arbiter) (group group))
