@@ -40,12 +40,12 @@
 
 (defclass invisible-helper (helper invisible) ())
 
-(defclass visible-helper (helper has-absolute-microstep oneshot) 
+(defclass visible-helper (helper has-absolute-microstep oneshot)
   ((angle :initform 0 :accessor visible-helper-angle)))
 
 (defmethod delta-microstep ((h visible-helper) dt)
   (setf (visible-helper-angle h)
-        (mod (+ (visible-helper-angle h) 
+        (mod (+ (visible-helper-angle h)
                 (/ dt internal-time-units-per-second))
              #.(* 2 pi))))
 
@@ -217,7 +217,7 @@
                               (parse-action action (level location))))))
       ((list :start :inverted) (new 'inverted-start-trigger))
       ((list* :gate name options)
-       (apply #'make-door name :location location :pressp nil options)) 
+       (apply #'make-door name :location location :pressp nil options))
       ((list :door name) (make-door name :location location :pressp t))
       ((list :blocked-square name) (new 'square :name name :blockedp t))
       ((list :invisible-blocker) (new 'invisible-blocker))
@@ -235,7 +235,7 @@
                       :group-class 'release-group
                       :combination :or
                       :target name))
-      (e 
+      (e
        (add-object-at-location%% location e)))))
 
 ;;;; GAME
@@ -277,24 +277,29 @@
 
 (define-condition restart-game-signal () ())
 (define-condition restart-window () ())
+(define-condition quit-game () ())
 
 (defun restart-game-loop (&rest args)
   (declare (ignore args))
   (invoke-restart 'restart-game-loop))
 
+(defun quit-game (&rest args)
+  (declare (ignore args))
+  (signal 'quit-game))
+
 (defgeneric game-setup (game)
   (:method-combination progn)
   (:method progn (_)))
 
-(use-package :bricabrac.sdl2.event-loop)
+(use-package :sdl2-event-loop.events)
 
 (defun sdl2-break (&aux (all (bordeaux-threads:all-threads)))
   (bt:interrupt-thread (or (find "SDL2"
-                                        all
-                                        :test #'search
-                                        :key #'bt:thread-name)
-                                  (error "Not found in ~s" all))
-                              #'break))
+                                 all
+                                 :test #'search
+                                 :key #'bt:thread-name)
+                           (error "Not found in ~s" all))
+                       #'break))
 
 ;; (defun mouse-command (mouse-button)
 ;;   (case mouse-button
@@ -361,6 +366,7 @@
        create-window
          (multiple-value-bind (width height)
              (window-dimensions (/ (width game) (height game)))
+           (declare (ignore width height))
            (with-window (*window* :w 800 ;;(round width)
                                   :h 600 ;; (round height)
                                   :title (title game)
@@ -369,17 +375,21 @@
                (with-renderer (*renderer* *window*)
                  (gl-make-current *window* *gl*)
                  (game-setup game)
-                 (handler-bind ((restart-game-signal #'restart-game-loop)
-                                (restart-window
-                                  (lambda (condition)
-                                    (declare (ignore condition))
-                                    (go create-window))))
-                   (tagbody
-                    start
-                      (restart-case (game-loop game)
-                        (restart-game-loop ()
-                          :report "Restart game loop"
-                          (go start)))))))))))))
+                 (block :main
+                   (handler-bind ((restart-game-signal #'restart-game-loop)
+                                  (quit-game (lambda (c)
+                                               (declare (ignore c))
+                                               (return-from :main)))
+                                  (restart-window
+                                    (lambda (condition)
+                                      (declare (ignore condition))
+                                      (go create-window))))
+                     (tagbody
+                      start
+                        (restart-case (game-loop game)
+                          (restart-game-loop ()
+                            :report "Restart game loop"
+                            (go start))))))))))))))
 
 (defgeneric game-command (game command)
   (:method (game command) nil)
@@ -399,7 +409,7 @@
 
 ;;;; MARCHING-SQUARES
 
-;; recorded inputs 
+;; recorded inputs
 
 (defclass input-sequence ()
   ((inputs :initarg :inputs :accessor inputs :initform nil)
@@ -589,7 +599,7 @@
     (restart-case (return (call-next-method))
       (accept () :report "Try next loop iteration"))))
 
-(microsteps *game*)
+;; (microsteps *game*)
 
 (defmethod game-idle ((game marching-squares))
   (update game)
@@ -707,7 +717,7 @@
           (let ((up (first (neighbours location :n))))
             (when (allow-move-p square up)
               (case (direction square)
-                (:left 
+                (:left
 		 (destructuring-bind (nw w) (neighbours location :nw :w)
                    (when (and (allow-move-p square nw)
                               (allow-move-p square w))

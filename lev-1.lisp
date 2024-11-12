@@ -3,7 +3,7 @@
 (defun intro-level ()
   (make-instance
    'level-blueprint
-   :name "slow steps"
+   :name "Mix"
    :class 'shakeable-level
    :width 31
    :height 31
@@ -46,7 +46,7 @@
                  (:red . ((:background 0.6 0.3 0.3 1)
                           ,@common))))
    :on-start (lambda (level) (pick-palette level :blue))
-   :on-winning (next 'button-intro-level)
+   :on-winning (next 'level/lateral-thinking)
    :triggers '((:class level-1/shake-destroy))
    :bindings '((#\b . (:trigger :release x))
                (#\B . (:blocked-square x))

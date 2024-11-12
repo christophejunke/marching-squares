@@ -77,12 +77,12 @@
            "## ###################"
            "##                 ###"
            "##                 ###"
-           "## ##############  ###"
-           "#################  ###"
+           "## ######### ####  ###"
+           "############ ####  ###"
            "##                 ###"
            "##                 ###"           
-           "### ############   ###"
-           "### ############   ###"
+           "### ######   ###   ###"
+           "### ######   ###   ###"
            "### ##################"
            "###@##################"           
            )
@@ -230,7 +230,7 @@
   (make-instance
    'level-blueprint
    :palettes '((:default . ((:wall 0.1 0 0 1)
-                            (:background 0.7 0.2 0.2 1)
+                            (:background 0.5 0.2 0.7 1)
                             (:help .5 1.0 0.0 1.0))))
    :name "Time"
    :dimensions 13
@@ -240,17 +240,15 @@
            "           # "
            "         b # "
            "##B####### ##"
-           "#   ##########   "
+           "#   ########## "
            "#"
            "#           #"
            "#           #"
-           "# #         #  "
-           "# #####=###=#            "           
-           "#######@###@##"
-
-           )
+           "# #         # "
+           "# #####=###=# "           
+           "#######@###@##" )
    :on-start (lambda (level) (pick-palette level :default))
-   :on-winning (next 'level/lateral-thinking )
+   :on-winning (next 'intro-level)
    :bindings '((#\X . (:trigger :lose))
                (#\@ . (:trigger :win))
                (#\V . :start)
@@ -264,7 +262,7 @@
 (defun level/lateral-thinking ()
   (make-instance
    'level-blueprint
-   :name "Garden"
+   :name "Wandering square"
    :width 31
    :height 31
    :grid #("                               "
@@ -307,7 +305,7 @@
                      (:background 0.3 0.5 0.3 1)
                      (:foreground 0 1 0 1)
                      (:door 0 1 0 0.35)))) 
-   :on-winning (next 'button-intro-level)
+   :on-winning #'quit-game
    :bindings `((#\b . (:release x))
                (#\B . (:blocked-square x))
                (#\@ . (:trigger :win))
