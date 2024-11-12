@@ -4,7 +4,7 @@
   (make-instance
    'level-blueprint
    :palettes '((:default . ((:background 0.3 0.5 0.6 1.0))))
-   :name "Marching square"
+   :name "← Marching square →"
    :dimensions 12
    :grid #("##   V    ##"
            "##        ##"
@@ -72,7 +72,7 @@
            "##                 ###"
            "##                 ###"
            "##                 ###"
-           "##                 ###"           
+           "##                 ###"
            "## ########### #######"
            "## ###################"
            "##                 ###"
@@ -80,11 +80,11 @@
            "## ######### ####  ###"
            "############ ####  ###"
            "##                 ###"
-           "##                 ###"           
+           "##                 ###"
            "### ######   ###   ###"
            "### ######   ###   ###"
            "### ##################"
-           "###@##################"           
+           "###@##################"
            )
    :on-start (lambda (level) (pick-palette level :default))
    :on-winning (next 'tut-door)
@@ -138,13 +138,13 @@
            "       #     "
            "  ##  ###-#  "
            " ##       ##   "
-           "###       ####  "           
+           "###       ####  "
            "### # #   ####   "
            "### #-## #####   #"
            "### # ## #####   #"
            "###       ####   "
            "###        ####   "
-           "###        ####   "           
+           "###        ####   "
            "#### ## ## ####   "
            "####@##@##@###  "
            )
@@ -176,7 +176,7 @@
            "###-#####-###          "
            "### #####  ##"
            "                "
-           "                "           
+           "                "
            "###@#####@###")
    :on-start (lambda (level) (pick-palette level :default))
    :on-winning (next 'tut-mirror)
@@ -185,7 +185,7 @@
                (#\V . :start)
                (#\M . (:help! "Doors of the same group open when all pressed"))
                (#\b . (:trigger :release s0))
-               (#\B . (:blocked-square s0))               
+               (#\B . (:blocked-square s0))
 	       (#\- . (:door door-1))
                (#\= . (:door door-2)))))
 
@@ -205,11 +205,11 @@
            "### 8       ##"
            "##########  ##"
            "# B ##### b ##   "
-           "#          "  
+           "#          "
            "# #       # #"
            "# #       # #  "
-           "# ####==##### "           
-           "# ##      ###" 
+           "# ####==##### "
+           "# ##      ###"
            "######@@#####"
 
            )
@@ -218,10 +218,10 @@
    :bindings '((#\X . (:trigger :lose))
                (#\@ . (:trigger :win))
                (#\V . :start)
-               (#\8 . (:trigger :invert))               
+               (#\8 . (:trigger :invert))
                (#\M . (:help! "Doors of the same group open when all pressed"))
                (#\b . (:trigger :release s0))
-               (#\B . (:blocked-square s0))               
+               (#\B . (:blocked-square s0))
 	       (#\- . (:door door-1))
                (#\= . (:door door-2)))))
 
@@ -245,17 +245,17 @@
            "#           #"
            "#           #"
            "# #         # "
-           "# #####=###=# "           
+           "# #####=###=# "
            "#######@###@##" )
    :on-start (lambda (level) (pick-palette level :default))
    :on-winning (next 'intro-level)
    :bindings '((#\X . (:trigger :lose))
                (#\@ . (:trigger :win))
                (#\V . :start)
-               (#\8 . (:trigger :invert))               
+               (#\8 . (:trigger :invert))
                (#\M . (:help! "Doors of the same group open when all pressed"))
                (#\b . (:trigger :release s0))
-               (#\B . (:blocked-square s0))               
+               (#\B . (:blocked-square s0))
 	       (#\- . (:door door-1))
                (#\= . (:door door-2)))))
 
@@ -266,7 +266,7 @@
    :width 31
    :height 31
    :grid #("                               "
-           "                              " 
+           "                              "
            "               V                "
            "               #               "
            "        #             #        "
@@ -304,7 +304,7 @@
                      (:blocked-square 0.3 1 0.3 0.5)
                      (:background 0.3 0.5 0.3 1)
                      (:foreground 0 1 0 1)
-                     (:door 0 1 0 0.35)))) 
+                     (:door 0 1 0 0.35))))
    :on-winning #'quit-game
    :bindings `((#\b . (:release x))
                (#\B . (:blocked-square x))
@@ -342,7 +342,7 @@
            "              ###               "
            "              ###               "
            "              ###               "
-           "     ##/###############/##      " 
+           "     ##/###############/##      "
            "     ##################### "
            "     ####             ####      "
            "     ####             ####      "
@@ -365,14 +365,14 @@
 
                (#\* . (:button button-1 (:trigger gate-1)))
                (#\- . (:gate gate-1))
-               
+
                (#\/ . (:button releaser-button (:release blocked-0)))
 
                (#\O . (:blocked-square blocked-0))
                (#\o . (:trigger :release blocked-0))
 
                (#\~ . (:door door-0))
-               
+
                (#\b . (:trigger :release x))
                (#\B . (:blocked-square x))
                (#\e . (:trigger :release y))

@@ -39,6 +39,10 @@
 (defun ensure-blueprint (blueprint)
   (typecase blueprint
     (symbol (funcall blueprint))
+    (function (funcall blueprint))
+    (cons (destructuring-bind (_ level) blueprint
+            (declare (ignore _))
+            (funcall level)))
     (t blueprint)))
 
 (defun map-blueprint-grid (function blueprint)
@@ -48,17 +52,17 @@
       blueprint
     (dotimes (row height)
       (dotimes (col width)
-	(funcall function 
+	(funcall function
 		 (ignore-errors
 		   (aref (aref rows row) col))
 		 :col col
 		 :row row)))))
 
-(defmethod initialize-instance :after ((blueprint level-blueprint) 
+(defmethod initialize-instance :after ((blueprint level-blueprint)
 				       &key &allow-other-keys)
   (let ((unknowns)
 	(unused)
-	(chars (alist-hash-table 
+	(chars (alist-hash-table
 		(mapcar (lambda (alist) (cons (car alist) 0))
 			(bindings blueprint)))))
     (flet ((cell (char &key &allow-other-keys)

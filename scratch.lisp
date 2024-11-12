@@ -4,11 +4,11 @@
 
 (progn
   (defparameter *game*
-    (make-instance 'marching-squares::marching-squares 
+    (make-instance 'marching-squares::marching-squares
                    :microsteps 11
                    :microsteps-duration 0.1
                    :sleep-delay 0.21
-                   :level-blueprint 'tut-0))
+                   :level-blueprint '(:level tut-mirror)))
   (start-game *game*))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -35,7 +35,7 @@
 ;; 		 "           8  8  8                "
 ;; 		 "              8                   "
 ;; 		 "                                  "
-;; 		 "               "  
+;; 		 "               "
 ;; 		 "          ############### ###########       "
 ;; 		 "    #####    #            ###########               "
 ;; 		 "     #                    ###########               "
@@ -92,7 +92,7 @@
 
 (setf (input-state *game*) (make-square-input))
 
-;; (allow-move-p 
+;; (allow-move-p
 ;;  (first (objects-at (loc (game-level *game*) 28 21)))
 ;;  (first (objects-at (loc (game-level *game*) 28 22))))
 
@@ -254,10 +254,10 @@
    :name "first steps"
    :width 31
    :height 31
-   :grid #("#######      V       # # # ####" 
-           "#######             ## ########" 
+   :grid #("#######      V       # # # ####"
+           "#######             ## ########"
            "#######              #   #  ###"
-           "#######             ###########" 
+           "#######             ###########"
            "#######                  #   ##"
            "####### ################ ######"
 	   "#######             #### # # ##"
@@ -290,7 +290,7 @@
    :on-winning (next 'intro-level)
    :palettes `((t . ((:wall 0 0 0 .55)
                      (:background 0.3 0.5 0.6 1)
-                     (:foreground 1 1 1 1))))   
+                     (:foreground 1 1 1 1))))
    :bindings `((#\b . (:release x))
                (#\B . (:blocked-square x))
                (#\@ . (:trigger :win))
@@ -304,7 +304,7 @@
    :width 31
    :height 31
    :grid #("                               "
-           "                              " 
+           "                              "
            "               V                "
            "               #               "
            "        #             #        "
@@ -341,7 +341,7 @@
                      (:blocked-square 0.3 1 0.3 0.5)
                      (:background 0.3 0.5 0.3 1)
                      (:foreground 0 1 0 1)
-                     (:door 0 1 0 0.35)))) 
+                     (:door 0 1 0 0.35))))
    :bindings `((#\b . (:release x))
                (#\B . (:blocked-square x))
                (#\@ . (:trigger :win))
@@ -378,7 +378,7 @@
            "              ###               "
            "              ###               "
            "              ###               "
-           "     ##/###############/##      " 
+           "     ##/###############/##      "
            "     ##################### "
            "     ####             ####      "
            "     ####             ####      "
@@ -401,14 +401,14 @@
 
                (#\* . (:button button-1 (:trigger gate-1)))
                (#\- . (:gate gate-1))
-               
+
                (#\/ . (:button releaser-button (:release blocked-0)))
 
                (#\O . (:blocked-square blocked-0))
                (#\o . (:trigger :release blocked-0))
 
                (#\~ . (:door door-0))
-               
+
                (#\b . (:trigger :release x))
                (#\B . (:blocked-square x))
                (#\e . (:trigger :release y))
@@ -574,7 +574,7 @@
                      (:blocked-square 1 1 1 0.45)
                      (:background 0.25 0.25 0.25 1)
                      (:foreground 1 1 1 0.5)
-                     (:door 1 1 1 0.65))))   
+                     (:door 1 1 1 0.65))))
    :bindings `((#\b . (:trigger :release x))
                (#\B . (:blocked-square x))
                (#\e . (:trigger :release y))
@@ -611,7 +611,7 @@
     (global-trigger has-location oneshot transformable)
   ())
 
-(defmethod transform-model-view 
+(defmethod transform-model-view
     ((tt button-intro-level/hard/destroy))
   (gl:translate 0.5 0.5 0.5))
 
@@ -622,7 +622,7 @@
 (defmethod triggerable ((trigger button-intro-level/hard/destroy))
   (some-square-p (location trigger)))
 
-(defclass blocked-wall-square (wall-square blockable) 
+(defclass blocked-wall-square (wall-square blockable)
   ()
   (:default-initargs :blockedp t))
 
@@ -687,23 +687,23 @@
                      (:background 0.15 0.15 0.15 1)
                      (:foreground 1 1 1 0.5)
                      (:door 1 1 1 0.65)))
-	       
-	       
+
+
 	       (unlock-right-square
 		(:door 0.3 0.3 1 1))
 	       ($ (:button/fired 0.3 0.3 1 1)
 		  (:button/inert 0.3 0.3 1 0.5))
-	       
+
 	       (z (:blocked-square 0.1 1 0.1 0.35))
 	       ((:releaser-for z) (:foreground 0 1 0 1))
-	       
+
 	       (w (:blocked-square 0.6 0.6 1 0.35))
 	       ((:releaser-for w) (:foreground .5 .5 1 1))
-	       
+
 	       (q (:blocked-square 1 0.7 0.7 0.15))
 	       ((:releaser-for q) (:foreground 0.9 0.4 0.4 0.5))
 	       (bye (:flash/feedback 1 1 0.3 1)
-		    (:foreground     1 1 0.3 0.45))	       
+		    (:foreground     1 1 0.3 0.45))
 	       (final (:flash/feedback 1 0.3 0.3 1)
 		      (:foreground     1 0.3 0.3 0.65)))
 

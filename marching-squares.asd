@@ -28,11 +28,11 @@
                 :components ((:file "squares")))
 
                (:file "ms")
-               
+
                (:module "levels"
                 :components ((:file "tutorials")))
-               
-               ;; (:file "lev-1")
+
+               (:file "lev-1")
                )
   :author "Christophe Junke <junke.christophe@gmail.com>"
   :license "MIT")

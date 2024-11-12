@@ -183,9 +183,14 @@
                              invisible)
   ())
 
+(defmethod build ((f function) context)
+  (build (funcall f) context))
+
 (defmethod build ((s symbol) context)
   (if (and s (fboundp s))
-      (build (funcall s) context)
+      (progn
+        (warn "deprecated: use function object instead")
+        (build (funcall s) context))
       (call-next-method)))
 
 (defun some-square-p (place)
@@ -235,7 +240,11 @@
                       :group-class 'release-group
                       :combination :or
                       :target name))
+      ((list :level s)
+       (build (funcall s) location))
       (e
+       (warn "default case: ~a" e)
+       (check-type location loc)
        (add-object-at-location%% location e)))))
 
 ;;;; GAME
