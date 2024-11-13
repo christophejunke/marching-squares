@@ -35,10 +35,9 @@
     (win (game level))))
 
 (defun next (level)
-  (let ((level (symbol-function level)))
-    (lambda (game)
-      (setf (level-blueprint game) level)
-      (restart-game-loop))))
+  (lambda (game)
+    (setf (level-blueprint game) level)
+    (restart-game-loop)))
 
 (defmethod microstep ((game game) ratio)
   (microstep (game-level game) ratio))

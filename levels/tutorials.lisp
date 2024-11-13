@@ -1,5 +1,32 @@
 (in-package :marching-squares)
 
+(defun tut ()
+  (make-instance
+   'level-blueprint
+   :palettes '((:default . ((:background 0.3 0.5 0.6 1.0))))
+   :name "← Marching square →"
+   :dimensions 12
+   :grid #("     V      "
+           "            "
+           "            "
+           "            "
+           "#          #"
+           "#         ##"
+           "##        ##"
+           "##        ##"
+           "##        ##"
+           "##        ##"
+           "##        ##"
+           "##   @    ##")
+   :on-start (lambda (level) (pick-palette level :default))
+   :on-winning (next 'tut-0)
+   :bindings '((#\X . (:trigger :lose))
+               (#\@ . (:trigger :win))
+               (#\V . :start)
+               (#\M . (:help! "Use left and right arrows"))
+               (#\E . (:help "Press Esc to restart level"))
+	       (#\- . (:door door-1)))))
+
 (defun tut-0 ()
   (make-instance
    'level-blueprint
@@ -23,7 +50,7 @@
    :bindings '((#\X . (:trigger :lose))
                (#\@ . (:trigger :win))
                (#\V . :start)
-               (#\M . (:help! "Reach glowing exit (bottom right)"))
+               (#\M . (:help! "Use left and right arrows"))
                (#\E . (:help "Press Esc to restart level"))
 	       (#\- . (:door door-1)))))
 
@@ -99,7 +126,11 @@
   (make-instance
    'level-blueprint
    :palettes '((:default . ((:background 0.2 0.2 0.3 1.0)
-                            (:help 1.0 1.0 0.0 1.0))))
+                            (:help 1.0 1.0 0.0 1.0)))
+               (door-1 . ((:foreground 0.3 0.7 0.3 1.0)
+                          (:flash/feedback 0.4 1.0 0.4 1.0)))
+               (door-2 . ((:foreground 0.7 0.7 1.0 1.0)
+                          (:flash/feedback 0.8 0.8 1.0 1.0))))
    :name "Door"
    :dimensions 11
    :grid #("##### V ### "
@@ -227,7 +258,8 @@
    'level-blueprint
    :palettes '((:default . ((:wall 0.1 0 0 1)
                             (:background 0.7 0.2 0.2 1)
-                            (:help .5 1.0 0.0 1.0))))
+                            (:help .5 1.0 0.0 1.0)))
+               (door-1 . ((:foreground 0.8 0.6 0.6 1.0))))
    :name "Mirror"
    :dimensions 13
    :grid #("      V      "
@@ -294,7 +326,7 @@
 (defun level/lateral-thinking ()
   (make-instance
    'level-blueprint
-   :name "Forbidden fruit"
+   :name "Asymetry"
    :width 31
    :height 31
    :grid #("                               "
@@ -336,7 +368,9 @@
                      (:blocked-square 0.3 1 0.3 0.5)
                      (:background 0.3 0.5 0.3 1)
                      (:foreground 0 1 0 1)
-                     (:door 0 1 0 0.35))))
+                     (:door 0 1 0 0.35)))
+               (door-2 . ((:foreground 0.2 0.6 0.2 1.0)
+                          (:flash/feedback 0.3 0.9 0.3 1.0))))
    :on-winning #'quit-game
    :bindings `((#\b . (:release x))
                (#\B . (:blocked-square x))

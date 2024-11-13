@@ -8,13 +8,13 @@
                    :microsteps 11
                    :microsteps-duration 0.1
                    :sleep-delay 0.21
-                   :level-blueprint '(:level tut-0)))
+                   :level-blueprint 'tut-door))
   (start-game *game*))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; (setf (level-blueprint *game*) 'marching-squares::tut-0)
-(setf (level-blueprint *game*) 'tut-doors)
+(setf (level-blueprint *game*) 'tut)
 
 
 ;; (defparameter *ramping-level*
