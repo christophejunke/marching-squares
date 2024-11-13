@@ -149,7 +149,7 @@
            "####@##@##@###  "
            )
    :on-start (lambda (level) (pick-palette level :default))
-   :on-winning (next 'tut-release)
+   :on-winning (next 'tut-buttons)
    :bindings '((#\X . (:trigger :lose))
                (#\@ . (:trigger :win))
                (#\V . :start)
@@ -158,12 +158,44 @@
 	       (#\- . (:door door-1))
                (#\= . (:door door-2)))))
 
+
+(defun tut-buttons ()
+  (make-instance
+   'level-blueprint
+   :palettes '((:default . ((:background 0.2 0.2 0.3 1.0)
+                            (:help .5 1.0 0.0 1.0))))
+   :name "Button and gates"
+   :dimensions 13
+   :grid #("####V##V##V###"
+           "##   ## ##    "
+           "     #   #   "
+           "     #   ###S"
+           "^###^#        "
+           " ###"
+           "     ###S# ###"
+           "         #####  "
+           "             "
+           "            "
+           "             "
+           "###### ######"
+           "######@######")
+   :on-start (lambda (level) (pick-palette level :default))
+   :on-winning (next 'tut-release)
+   :bindings '((#\X . (:trigger :lose))
+               (#\@ . (:trigger :win))
+               (#\V . :start)
+               (#\S . (:button button-group-1 (:trigger gate-1)))
+               (#\Z . (:button button-group-2 (:trigger gate-2)))
+               (#\^ . (:gate gate-1))
+               (#\+ . (:gate gate-2))
+               (#\M . (:help! "Press all buttons")))))
+
 (defun tut-release ()
   (make-instance
    'level-blueprint
    :palettes '((:default . ((:background 0.2 0.4 0.3 1.0)
                             (:help .5 1.0 0.0 1.0))))
-   :name "Blocked squares"
+   :name "Blocked square"
    :dimensions 13
    :grid #("      V      "
            "            "

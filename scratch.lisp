@@ -14,7 +14,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; (setf (level-blueprint *game*) 'marching-squares::tut-0)
-(setf (level-blueprint *game*) 'tut-0)
+(setf (level-blueprint *game*) 'tut-doors)
 
 
 ;; (defparameter *ramping-level*
