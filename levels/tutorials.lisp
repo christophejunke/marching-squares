@@ -88,10 +88,10 @@
    'level-blueprint
    :palettes '((:default . ((:background 0.4 0.1 0.1 1.0)
                             (:help 1.0 0.0 0.0 1.0))))
-   :name "Marching Squares"
+   :name "More marching squares"
    :dimensions 22
-   :grid #("## VVV VVV VVV     ###"
-           "##                 ###"
+   :grid #("## VVV  V  VVV     ###"
+           "##     V V         ###"
            "##                 ###"
            "##                 ###"
            "##                 ###"

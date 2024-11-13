@@ -14,6 +14,7 @@
                 #:with-gl-context
                 #:with-renderer
                 #:with-event-loop
-                #:gl-make-current))
+                #:gl-make-current)
+  (:export #:start))
 
 

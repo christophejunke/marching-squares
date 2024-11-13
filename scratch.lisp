@@ -2,13 +2,14 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(progn
-  (defparameter *game*
-    (make-instance 'marching-squares::marching-squares
-                   :microsteps 11
-                   :microsteps-duration 0.1
-                   :sleep-delay 0.21
-                   :level-blueprint 'tut-0))
+(defparameter *game* nil)
+
+(defun start ()
+  (setf *game* (make-instance 'marching-squares::marching-squares
+                              :microsteps 11
+                              :microsteps-duration 0.1
+                              :sleep-delay 0.21
+                              :level-blueprint 'tut-0))
   (start-game *game*))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

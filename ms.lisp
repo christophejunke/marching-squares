@@ -189,7 +189,6 @@
 (defmethod build ((s symbol) context)
   (if (and s (fboundp s))
       (progn
-        (warn "deprecated: use function object instead")
         (build (funcall s) context))
       (call-next-method)))
 
