@@ -195,7 +195,7 @@
    'level-blueprint
    :palettes '((:default . ((:background 0.2 0.2 0.3 1.0)
                             (:help .5 1.0 0.0 1.0))))
-   :name "Button and gates"
+   :name "Buttons and gates"
    :dimensions 13
    :grid #("####V##V##V###"
            "##   ## ##    "
@@ -259,7 +259,8 @@
    :palettes '((:default . ((:wall 0.1 0 0 1)
                             (:background 0.7 0.2 0.2 1)
                             (:help .5 1.0 0.0 1.0)))
-               (door-1 . ((:foreground 0.8 0.6 0.6 1.0))))
+               (door-1 . ((:foreground 0.8 0.4 0.4 1.0)
+                          (:flash/feedback 1.0 0.3 0.3 1.0))))
    :name "Mirror"
    :dimensions 13
    :grid #("      V      "
