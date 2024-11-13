@@ -3,7 +3,7 @@
 (defun intro-level ()
   (make-instance
    'level-blueprint
-   :name "Mix"
+   :name "Don't panic"
    :class 'shakeable-level
    :width 31
    :height 31
@@ -18,19 +18,19 @@
            "             ##B##  b  ###        "
            "                       ###        "
            "                       ###        "
-           "     ########=###=########        "
+           "     ########=###=####X###        "
            "     ###       #                  "
            "     ###       #      8           "
            "     #########:#:#########        "
            "                                  "
            "                                  "
-           "   ########~########~#######      "
-           "     #     e###E#        #        "
+           "   ########~########~####X##      "
+           "     #     e###E#                 "
            " #H#                ?      #H#    "
            " ###       ##     ######H# ###    "
            " ###            #  ####### ###    "
            "          #### ##  ## /           "
-           "                 # ## /  XXXXX    "
+           "                 # ## /           "
            "           ##     8## /           "
            "         #    ##8# ## /           "
            "           # #     ## /       /   "
@@ -44,7 +44,8 @@
                `((:blue . ((:background 0.3 0.5 0.6 1.0)
                            ,@common))
                  (:red . ((:background 0.6 0.3 0.3 1)
-                          ,@common))))
+                          ,@common))
+                 (dx . ((:door 0.0 0.0 0.0 0.0)))))
    :on-start (lambda (level) (pick-palette level :blue))
    :on-winning (next 'level/lateral-thinking)
    :triggers '((:class level-1/shake-destroy))
@@ -55,7 +56,7 @@
                (#\f . (:trigger :release z))
                (#\F . (:blocked-square z))
                (#\/ . (:invisible-blocker))
-               (#\X . (:trigger :lose))
+               (#\X . (:gate dx))
                (#\@ . (:trigger :win))
                (#\8 . (:trigger :invert))
                (#\V . :start)
@@ -172,7 +173,7 @@
   (:default-initargs :name 'shake-destroy))
 
 (defmethod trigger ((action level-1/shake-destroy))
-  (bt:make-thread 
+  (bt:make-thread
    (lambda ()
      (let* ((margin 2)
             (iter 6)

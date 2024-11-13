@@ -243,7 +243,6 @@
       ((list :level s)
        (build (funcall s) location))
       (e
-       (warn "default case: ~a" e)
        (check-type location loc)
        (add-object-at-location%% location e)))))
 

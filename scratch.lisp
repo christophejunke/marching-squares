@@ -8,7 +8,7 @@
                    :microsteps 11
                    :microsteps-duration 0.1
                    :sleep-delay 0.21
-                   :level-blueprint 'tut-0))
+                   :level-blueprint 'intro-level))
   (start-game *game*))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
