@@ -4,6 +4,7 @@
    :sdl2-event-loop
    :optima
    :alexandria)
+  (:use :sdl2-event-loop.events)
   (:import-from :sdl2
                 #:set-render-draw-color
                 #:scancode-key-to-value

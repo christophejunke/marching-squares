@@ -300,8 +300,6 @@
   (:method-combination progn)
   (:method progn (_)))
 
-(use-package :sdl2-event-loop.events)
-
 (defun sdl2-break (&aux (all (bordeaux-threads:all-threads)))
   (bt:interrupt-thread (or (find "SDL2"
                                  all

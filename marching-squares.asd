@@ -1,5 +1,12 @@
 (defsystem :marching-squares
-  :depends-on (:trivia :alexandria :sdl2 :sdl2-ttf :cl-opengl :bricabrac :bordeaux-threads)
+  :depends-on (:trivia
+               :alexandria
+               :sdl2
+               :sdl2-ttf
+               :sdl2-event-loop
+               :cl-opengl
+               :bricabrac
+               :bordeaux-threads)
   :components ((:file "packages")
                (:file "utils")
                (:module "framework"

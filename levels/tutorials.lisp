@@ -262,7 +262,7 @@
 (defun level/lateral-thinking ()
   (make-instance
    'level-blueprint
-   :name "Wandering square"
+   :name "Forbidden fruit"
    :width 31
    :height 31
    :grid #("                               "
