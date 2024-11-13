@@ -4,9 +4,6 @@
   (:documentation
    "Mixin for objects that are displayed in a modified model view."))
 
-;; (bricabrac.docstrings:with-realigned-docstring (t)
-;; )
-
 (defgeneric transform-model-view (transformable)
     (:method (_))
     (:documentation
