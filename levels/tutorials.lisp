@@ -60,19 +60,19 @@
    :palettes '((:default . ((:background 0.2 0.3 0.2 1.0)
                             (:help 0.2 0.9 0.2 1.0))))
    :name "Marching squares"
-   :dimensions 11
-   :grid #("# V ### V #"
-           "#   ###   #"
-           "# ####### #"
-           "# ####### #"
-           "#         #"
-           "#         #"
-           "### #######"
-           "#         #"
-           "#         #"
-           "#         #"
-           "######@#@##"
-           "###########")
+   :dimensions 12
+   :grid #("#   #### V #"
+           "#   ####   #"
+           "# V ####   #"
+           "# ######## #"
+           "# ######## #"
+           "#          #"
+           "#          #"
+           "### ########"
+           "#          #"
+           "#          #"
+           "#          #"
+           "######@#@###")
    :on-start (lambda (level) (pick-palette level :default))
    :on-winning (next 'tut-marching-squares)
    :bindings '((#\X . (:trigger :lose))
@@ -90,11 +90,10 @@
                             (:help 1.0 0.0 0.0 1.0))))
    :name "More marching squares"
    :dimensions 22
-   :grid #("## VVV  V  VVV     ###"
-           "##     V V         ###"
+   :grid #("######V#V#############"
            "##                 ###"
            "##                 ###"
-           "##                 ###"
+           "##VVVV V VVVVVVV   ###"
            "#################  ###"
            "##                 ###"
            "##                 ###"
@@ -102,16 +101,17 @@
            "##                 ###"
            "## ########### #######"
            "## ###################"
-           "##                 ###"
-           "##                 ###"
-           "## ######### ####  ###"
-           "############ ####  ###"
+           "##           #########"
+           "##           #########"
+           "##           #########"
+           "##      #### #########"
+           "############ #########"
            "##                 ###"
            "##                 ###"
            "### ######   ###   ###"
            "### ######   ###   ###"
            "### ##################"
-           "###@##################"
+           "## @ #################"
            )
    :on-start (lambda (level) (pick-palette level :default))
    :on-winning (next 'tut-door)
@@ -164,19 +164,18 @@
                             (:help 1.0 1.0 0.0 1.0))))
    :name "Doors"
    :dimensions 13
-   :grid #(
-           "  V   V#V    "
-           "       #     "
-           "  ##  ###-#  "
-           " ##       ##   "
-           "###       ####  "
+   :grid #("##V##########"
+           "       #"
+           "      V#V    "
+           "      ###-#  "
+           "  #       ##   "
+           " ##       ####  "
            "### # #   ####   "
            "### #-## #####   #"
            "### # ## #####   #"
            "###       ####   "
            "###        ####   "
            "###        ####   "
-           "#### ## ## ####   "
            "####@##@##@###  "
            )
    :on-start (lambda (level) (pick-palette level :default))
@@ -242,7 +241,7 @@
            "                "
            "###@#####@###")
    :on-start (lambda (level) (pick-palette level :default))
-   :on-winning (next 'tut-mirror)
+   :on-winning (next 'tut-freeze)
    :bindings '((#\X . (:trigger :lose))
                (#\@ . (:trigger :win))
                (#\V . :start)
@@ -252,6 +251,47 @@
 	       (#\- . (:door door-1))
                (#\= . (:door door-2)))))
 
+(defun tut-freeze ()
+  (make-instance
+   'level-blueprint
+   :palettes '((:default . ((:background 0.1 0.3 0.2 1.0)
+                            (:help .5 1.0 0.0 1.0)
+                            (:win/flash 1.0 0.5 0.5 1)))
+               (g1 . ((:door 1.0 0.5 0.5 1.0)))
+               (bg1 . ((:button/fired 1.0 0.5 0.5 1.0)
+                       (:button/inert 1.0 0.5 0.5 .7))))
+   :name "Debris"
+   :dimensions 13
+   :grid #("###V#####V###"
+           "    !###    "
+           "b   !###     "
+           "###B!### ###"
+           "    B##   "
+           "     ###      "
+           "     ### ####"
+           "     ###s#####"
+           "     #   #######"
+           "    ##   #######"
+           "# ####   #####"
+           "#S###   ######"
+           "#####OO@OOOOO")
+   :on-start (lambda (level) (pick-palette level :default))
+   :on-winning (next 'tut-mirror)
+   :bindings '((#\X . (:trigger :lose))
+               (#\@ . (:trigger :win))
+               (#\O . (:fake :win))
+               (#\! . (:class/loc wall-square))
+               (#\/ . (:invisible-blocker))
+               (#\V . :start)
+               (#\^ . (:gate g0))
+               (#\~ . (:button bg0 (:trigger g0)))
+               (#\S . (:button bg1 (:trigger g1)))
+               (#\s . (:gate g1))
+               (#\M . (:help! "Doors of the same group open when all pressed"))
+               (#\b . (:trigger :release s0))
+               (#\B . (:blocked-square s0))
+	       (#\- . (:door door-1))
+               (#\= . (:door door-2)))))
 
 (defun tut-mirror ()
   (make-instance

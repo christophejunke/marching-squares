@@ -9,6 +9,7 @@
     (:wall 0 0 0 1)
     (:help 1 1 0 0.5)
     (:square 1 1 1 1)
+    (:win/flash 1 1 1 1)
     (:flash/feedback 1 1 1 1)
     (:inverted-square 0 0 0 1)
     (:low-contrast 1 1 1 0.5)

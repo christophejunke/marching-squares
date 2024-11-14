@@ -78,7 +78,8 @@
 ;;       '(0.0 0.0 0.0 1.0))
 
 (defclass wall-square (abstract-square)
-  ((falling :accessor falling :initform nil)))
+  ((falling :accessor falling :initform nil)
+   (tumbling :accessor tumbling :initform nil)))
 
 (defmethod is-pressed-by ((door press-door) (wall wall-square))
   nil)
@@ -99,17 +100,36 @@
 
 (defmethod allow-move-p ((object wall-square)
                          (target invisible-blocker))
-  nil)
+ nil)
 
 (defmethod compute-next-move ((square wall-square))
   ;; more like an UPDATE thing
   (setf (direction square)
-        (if (falling square)
-            (random-elt '(:left :right))
-            nil))
+        (cond
+          ((falling square)
+           (random-elt '(:left :right)))
+          ((tumbling square)
+           (let* ((candidates)
+                  (loc (location square))
+                  (neighbours (neighbours loc :nw :w :sw :ne :e :se)))
+             (destructuring-bind (nw w sw ne e se) neighbours
+               (when (and (allow-move-p square nw)
+                          (allow-move-p square w)
+                          (allow-move-p square sw))
+                 (push :left candidates))
+               (when (and (allow-move-p square ne)
+                          (allow-move-p square e)
+                          (allow-move-p square se))
+                 (push :right candidates)))
+             (and candidates (random-elt candidates))))))
   (let ((result (multiple-value-list (call-next-method))))
-    (setf (falling square)
-          (eq :fall (first result)))
+    (let ((was-falling (shiftf (falling square)
+                               (eq :fall (first result)))))
+      (cond
+        ((and was-falling (not (falling square)))
+         (setf (tumbling square) t))
+        ((tumbling square)
+         (setf (tumbling square) nil))))
     (values-list result)))
 
 (defclass shakeable (transformable)

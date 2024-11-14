@@ -232,6 +232,7 @@
       ((list* :class/loc class initargs) (apply #'new class initargs))
       ((list :trigger :lose) (new 'looser))
       ((list :trigger :win) (new 'winner))
+      ((list :fake :win) (new 'winner :group-name :fake-win))
       ((or (list :trigger :release name)
 	   (list :release name))
        (new 'releaser :group-name `(:releaser-for ,name)
@@ -277,7 +278,9 @@
         (+ -.1 (cos (counter trigger)))))
 
 (defmethod display ((trigger winner))
-  (gl:color (up trigger) (up trigger) (up trigger) .1)
+  (color `(:alpha 0.1
+                  (:blend ,(up trigger) :background  :win/flash)))
+  ;; (gl:color (up trigger) (up trigger) (up trigger) .1)
   (gl:rect 0 0.4 1 1)
   (gl:rect 0 0.6 1 1)
   (gl:rect 0 0.9 1 1))
@@ -733,6 +736,15 @@
                               (allow-move-p square e))
                      (values :right e)))))))))))
 
-(defparameter *game*
-  (make-instance 'marching-squares
-                 :level-blueprint 'intro-level))
+(defparameter *game* nil)
+
+(defun start (&optional (level 'tut-0))
+  (setf *game*
+        (make-instance 'marching-squares::marching-squares
+                       :microsteps 11
+                       :microsteps-duration 0.1
+                       :sleep-delay 0.21
+                       :level-blueprint level))
+  (start-game *game*))
+
+(start 'tut-freeze)
