@@ -33,9 +33,9 @@
    :palettes '((:default . ((:background 0.3 0.5 0.6 1.0))))
    :name "← Marching square →"
    :dimensions 12
-   :grid #("##   V    ##"
-           "##        ##"
-           "##        ##"
+   :grid #("#### V    ##"
+           "####      ##"
+           "###       ##"
            "##        ##"
            "######### ##"
            "#####     ##"
@@ -111,12 +111,13 @@
            "### ######   ###   ###"
            "### ######   ###   ###"
            "### ##################"
-           "## @ #################"
+           "##O@O#################"
            )
    :on-start (lambda (level) (pick-palette level :default))
    :on-winning (next 'tut-door)
    :bindings '((#\X . (:trigger :lose))
                (#\@ . (:trigger :win))
+               (#\O . (:fake :win))
                (#\V . :start)
                (#\M . (:help! "Here only one square is required to exit"))
 	       (#\- . (:door door-1)))))
@@ -138,7 +139,7 @@
            "##      ### "
            "##-######## "
            "##           "
-           "##        # "
+           "##         "
            "##           "
            "#####=### ###"
            "#####E### ###"
