@@ -747,4 +747,3 @@
                        :level-blueprint level))
   (start-game *game*))
 
-(start 'tut-freeze)
