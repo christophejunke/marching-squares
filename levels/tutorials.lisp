@@ -61,7 +61,7 @@
                             (:help 0.2 0.9 0.2 1.0))))
    :name "Marching squares"
    :dimensions 12
-   :grid #("#   #### V #"
+   :grid #("#########V##"
            "#   ####   #"
            "# V ####   #"
            "# ######## #"
@@ -142,12 +142,10 @@
            "##         "
            "##           "
            "#####=### ###"
-           "#####E### ###"
-           "######### ###"
+           "####   ## ###"
+           "#### E ## ###"
            "#########@###"
-           "#           #"
-           "##          #"
-           "##@##########")
+)
    :on-start (lambda (level) (pick-palette level :default))
    :on-winning (next 'tut-doors)
    :bindings '((#\X . (:trigger :lose))
@@ -257,10 +255,7 @@
    'level-blueprint
    :palettes '((:default . ((:background 0.1 0.3 0.2 1.0)
                             (:help .5 1.0 0.0 1.0)
-                            (:win/flash 1.0 0.5 0.5 1)))
-               (g1 . ((:door 1.0 0.5 0.5 1.0)))
-               (bg1 . ((:button/fired 1.0 0.5 0.5 1.0)
-                       (:button/inert 1.0 0.5 0.5 .7))))
+                            (:win/flash 1.0 0.5 0.5 1))))
    :name "Debris"
    :dimensions 13
    :grid #("###V#####V###"
