@@ -1,4 +1,9 @@
 (defsystem :marching-squares
+  :defsystem-depends-on (:deploy)
+  :build-operation "deploy-op"
+  :build-pathname "ms-demo"
+  :entry-point "marching-squares:start"
+
   :depends-on (:trivia
                :alexandria
                :sdl2
@@ -43,3 +48,6 @@
                )
   :author "Christophe Junke <junke.christophe@gmail.com>"
   :license "MIT")
+
+
+
