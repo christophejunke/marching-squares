@@ -4,14 +4,15 @@
   :build-pathname "ms-demo"
   :entry-point "marching-squares:start"
 
-  :depends-on (:trivia
+  :depends-on (:optima
                :alexandria
                :sdl2
                :sdl2-ttf
                :sdl2-event-loop
                :cl-opengl
-               :bricabrac
-               :bordeaux-threads)
+               ;; :bricabrac
+               ;; :bordeaux-threads
+               )
   :components ((:file "packages")
                (:file "utils")
                (:module "framework"

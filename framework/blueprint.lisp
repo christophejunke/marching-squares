@@ -78,6 +78,7 @@
       (maphash #'entry chars))
     (when unknowns
       (cerror "IGNORE" "Unknown characters: ~s" unknowns))
+    #-release
     (when unused
       (warn "Unused characters: ~a" unused))))
 
