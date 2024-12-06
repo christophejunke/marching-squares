@@ -130,8 +130,8 @@
                             (:help 1.0 1.0 0.0 1.0)))
                (door-1 . ((:foreground 0.3 0.7 0.3 1.0)
                           (:flash/feedback 0.4 1.0 0.4 1.0)))
-               (door-2 . ((:foreground 0.7 0.7 1.0 1.0)
-                          (:flash/feedback 0.8 0.8 1.0 1.0))))
+               (door-2 . ((:foreground 1.0 0.5 0.5 1.0)
+                          (:flash/feedback 1.0 0.6 0.6 1.0))))
    :name "Door"
    :dimensions 11
    :grid #("##### V ### "
@@ -196,17 +196,17 @@
    :name "Buttons and gates"
    :dimensions 13
    :grid #("####V##V##V###"
-           "##   ## ##    "
-           "     #   #   "
+           "     #   #     "
+           "     #   #    "
            "     #   ###S"
-           "^###^#        "
-           " ###"
-           "     ###S# ###"
-           "         #####  "
-           "             "
+           "###^##        "
+           "     #"
+           "     ###S#####"
+           "                 "
+           "                 "
            "            "
            "             "
-           "###### ######"
+           "######^######"
            "######@######")
    :on-start (lambda (level) (pick-palette level :default))
    :on-winning (next 'tut-release)
@@ -255,39 +255,36 @@
    'level-blueprint
    :palettes '((:default . ((:background 0.1 0.3 0.2 1.0)
                             (:help .5 1.0 0.0 1.0)
-                            (:win/flash 1.0 0.5 0.5 1))))
+                            (:foreground 1/10 1/10 1/10 1)
+                            (:win/flash 1.0 0.5 0.5 1)))
+               (s0 . ((:square 0.2 0.2 0.2 1)
+                      (:blocked-square 0.1 0.1 0.1 1))))
    :name "Debris"
    :dimensions 13
-   :grid #("###V#####V###"
-           "    !###    "
-           "b   !###     "
-           "###B!### ###"
-           "    B##   "
-           "     ###      "
-           "     ### ####"
-           "     ###s#####"
-           "     #   #######"
-           "    ##   #######"
+   :grid #("###V##!##V###"
+           "    !#      !"
+           "b   !# /  #     "
+           "####!### ## #"
+           "    B##   ! !"
+           "     ### /    "
+           "     # # #! !"
+           "       #s#! !#"
+           "     #   #!# ###"
+           "    ##     #####"
            "# ####   #####"
-           "#S###   ######"
-           "#####OO@OOOOO")
+           "#S####  ######"
+           "######O@OOOOO")
    :on-start (lambda (level) (pick-palette level :default))
    :on-winning (next 'tut-mirror)
-   :bindings '((#\X . (:trigger :lose))
-               (#\@ . (:trigger :win))
+   :bindings '((#\@ . (:trigger :win))
                (#\O . (:fake :win))
                (#\! . (:class/loc wall-square))
                (#\/ . (:invisible-blocker))
                (#\V . :start)
-               (#\^ . (:gate g0))
-               (#\~ . (:button bg0 (:trigger g0)))
                (#\S . (:button bg1 (:trigger g1)))
                (#\s . (:gate g1))
-               (#\M . (:help! "Doors of the same group open when all pressed"))
                (#\b . (:trigger :release s0))
-               (#\B . (:blocked-square s0))
-	       (#\- . (:door door-1))
-               (#\= . (:door door-2)))))
+               (#\B . (:class/loc visibly-wall-square :name s0 :blockedp t)))))
 
 (defun tut-mirror ()
   (make-instance
@@ -315,50 +312,54 @@
 
            )
    :on-start (lambda (level) (pick-palette level :default))
+   :on-winning (next 'tut-mirror-2)
+   :bindings '((#\X . (:trigger :lose))
+               (#\@ . (:trigger :win))
+               (#\V . :start)
+               (#\8 . (:trigger :invert))
+               (#\M . (:help! "Doors of the same group open when all pressed"))
+               (#\b . (:trigger :release s0))
+               (#\B . (:blocked-square s0))
+	       (#\- . (:door door-1))
+               (#\= . (:door door-2)))))
+
+
+(defun tut-mirror-2 ()
+  (make-instance
+   'level-blueprint
+   :palettes '((:default . ((:wall 0.1 0 0 1)
+                            (:background 0.7 0.2 0.2 1)
+                            (:help .5 1.0 0.0 1.0)))
+               (door-1 . ((:foreground 0.8 0.4 0.4 1.0)
+                          (:flash/feedback 1.0 0.3 0.3 1.0))))
+   :name "Mirrors"
+   :dimensions 13
+   :grid #("######VW#####"
+           "####        #"
+           "####        #"
+           "####8##### ##"
+           "#        #### "
+           "# 8      #####"
+           "# #-## #######"
+           "# #8##########   "
+           "# # #########"
+           "#           #"
+           "#           "
+           "##=###-######"
+           "#!!!!!@!!!!!#"
+
+           )
+   :on-start (lambda (level) (pick-palette level :default))
    :on-winning (next 'tut-chute)
    :bindings '((#\X . (:trigger :lose))
                (#\@ . (:trigger :win))
                (#\V . :start)
+               (#\! . (:fake :win))
+               (#\W . (:start :inverted))
                (#\8 . (:trigger :invert))
                (#\M . (:help! "Doors of the same group open when all pressed"))
-               (#\b . (:trigger :release s0))
-               (#\B . (:blocked-square s0))
-	       (#\- . (:door door-1))
-               (#\= . (:door door-2)))))
-
-
-(defun tut-chute ()
-  (make-instance
-   'level-blueprint
-   :palettes '((:default . ((:wall 0.1 0 0 1)
-                            (:background 0.5 0.2 0.7 1)
-                            (:help .5 1.0 0.0 1.0))))
-   :name "Time"
-   :dimensions 13
-   :grid #("      V      "
-           "#           #"
-           "#########-###"
-           "           # "
-           "         b # "
-           "##B####### ##"
-           "#   ########## "
-           "#"
-           "#           #"
-           "#           #"
-           "# #         # "
-           "# #####=###=# "
-           "#######@###@##" )
-   :on-start (lambda (level) (pick-palette level :default))
-   :on-winning (next 'intro-level)
-   :bindings '((#\X . (:trigger :lose))
-               (#\@ . (:trigger :win))
-               (#\V . :start)
-               (#\8 . (:trigger :invert))
-               (#\M . (:help! "Doors of the same group open when all pressed"))
-               (#\b . (:trigger :release s0))
-               (#\B . (:blocked-square s0))
-	       (#\- . (:door door-1))
-               (#\= . (:door door-2)))))
+	       (#\- . (:gate g1))
+               (#\= . (:button bg1 (:trigger g1))))))
 
 (defun level/lateral-thinking ()
   (make-instance

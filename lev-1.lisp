@@ -87,20 +87,34 @@
 (defclass visibly-wall-square (wall-square) ())
 
 (defmethod display ((square wall-square))
-  (display :wall))
+  (color '(:alpha 0.9 :wall))
+  (gl:rect 0 0 1 1))
 
 (defmethod display ((square visibly-wall-square))
-  (color '(:alpha 0.55 :wall))
-  (gl:rect 0 0 1 1))
+  (display :wall)
+  (when (blockedp square)
+    (color '(:alpha 0.35 :square))
+    (gl:rect 0.2 0.2 .8 .8)))
+
+(defmethod release ((level level) (square visibly-wall-square))
+  (setf (blockedp square) nil))
 
 (defmethod display ((blocker invisible-blocker))
   (set-color :inverter :alpha 1)
   (gl:translate 0.5 0.5 0.5)
   (csq 0.15))
 
-(defmethod allow-move-p ((object wall-square)
+(defmethod allow-move-p ((square wall-square)
                          (target invisible-blocker))
- nil)
+  (case (allow-direction target)
+    ((:vertical) (falling square))
+    (t nil)))
+
+(defmethod print-object ((o invisible-blocker) stream)
+  (print-unreadable-object (o stream :type t :identity t)
+    (format stream "direction:~a" (allow-direction o))))
+
+*game*
 
 (defmethod compute-next-move ((square wall-square))
   ;; more like an UPDATE thing

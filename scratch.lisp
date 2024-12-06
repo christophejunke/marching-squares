@@ -608,13 +608,14 @@
                (#\: . (:gate gate-5)))))
 
 
-(defclass button-intro-level/hard/destroy
-    (global-trigger has-location oneshot transformable)
+(defclass button-intro-level/hard/destroy (global-trigger
+                                           has-location
+                                           oneshot
+                                           transformable)
   ())
 
-(defmethod transform-model-view
-    ((tt button-intro-level/hard/destroy))
-  (gl:translate 0.5 0.5 0.5))
+(defmethod transform-model-view ((tt button-intro-level/hard/destroy))
+  (gl:translate (+ 1/3 (random .3)) 0.5 0.5))
 
 (defmethod display ((tt button-intro-level/hard/destroy))
   (color :wall)
@@ -628,10 +629,10 @@
   (:default-initargs :blockedp t))
 
 (defmethod display ((square blocked-wall-square))
-  (color '(:alpha 0.75 :wall))
+  (color '(:alpha 0.3 :wall))
   (gl:rect 0 0 1 1)
   (color :wall)
-  (gl:rect 0.1 0.1 0.9 0.9))
+  (gl:rect 0 0.0 1.0 0.9))
 
 (defmethod trigger ((trigger button-intro-level/hard/destroy))
   (dogroup (item (mobiles (game (level (location trigger)))))
@@ -655,29 +656,29 @@
            "              8  #8      g      "
            "    8########### ####G#$*##8    "
            "           ##### #### ##  #     "
-           "        F  ##### #### ##  # #  "
+           "       #F  ##### #### ##  # #  "
            "       #!# ###   #    #####+#  "
-           "           ###                  "
+           "           ###              #   "
            "        f  ###   #              "
-           "   #######+###,# #,#:#:#####   "
+           "   #######+###,# #,#T#######   "
            "   #######   # #,# # # #####    "
-	   "##             #   #   ##T#T     "
-	   "##                     #TTTT     "
-	   "##                     TTTTT     "
-	   "###################### TTTTT     "
-	   "######################/TTTT   # #   "
-	   "##                    /      ## # "
-	   "##                    /      ## # "
-	   "##                   Q #L    ## # "
-	   "##                   Q ##    ## ##"
-	   "##                   Q ##    ## ##"
-	   "##                   Q ##    ## ##"
-	   "##                  ?Q:##    ## ##"
-	   "##                  qQ ######## "
-	   "##@@@@@@@@@@@@@################ "
-	   "############################### "
-	   "############################### "
-	   "############################### "
+	   "##             #   #   #####     "
+	   "##                     #####     "
+	   "##                   / #####     "
+	   "###################### #####     "
+	   "##                           ## # "
+	   "##                           ## # "
+	   "##                   T ######## # "
+	   "##                   T ########     ## ##"
+	   "##                   T ########     ## ##"
+	   "##                   T ########     ## ##"
+	   "##                   T#########     ## ##"
+	   "##                     ######### "
+           "##             ?  / #  ########"
+	   "########       ######  ######### "
+	   "########@@@@@@@###### ################ "
+	   "##################### ########## "
+	   "##################### ########## "
 	   "############################### "
            )
    :on-start #'pick-palette
@@ -708,40 +709,22 @@
 	       (final (:flash/feedback 1 0.3 0.3 1)
 		      (:foreground     1 0.3 0.3 0.65)))
 
-   :bindings `((#\b . (:trigger :release x))
-               (#\B . (:blocked-square x))
-               (#\e . (:trigger :release y))
+   :bindings `((#\e . (:trigger :release y))
                (#\E . (:blocked-square y))
                (#\f . (:trigger :release z))
                (#\F . (:blocked-square z))
                (#\g . (:trigger :release w))
                (#\G . (:blocked-square w))
                (#\@ . (:trigger :win))
-               (#\> . (:blocked-square exit))
-               (#\< . (:trigger :release exit))
                (#\8 . (:trigger :invert))
                (#\V . :start)
-               (#\W . (:start :inverted))
-               (#\H . :help)
-               (#\% . :vanisher)
-               (#\u . (:spawn spawn-1))
-               (#\U . (:press-button button-group-1 (:trigger spawn-1)))
-               (#\Z . (:button button-group-1 (:trigger gate-3)))
-               (#\S . (:button button-group-3 (:trigger gate-4)))
-               (#\L . (:button button-group-2 (:trigger gate-5)))
                (#\$ . (:button $ (:trigger unlock-right-square)))
                (#\+ . (:door final))
                (#\, . (:door bye))
                (#\* . (:gate must-close :state :open))
                (#\! . (:button button-group-5 (:trigger must-close)))
                (#\_ . (:gate unlock-right-square))
-               (#\- . (:door door-1))
                (#\= . (:door door-2))
-               (#\~ . (:gate gate-3))
-               (#\^ . (:gate gate-4))
-               (#\: . (:gate gate-5))
-	       (#\Q . (:blocked-square q))
-	       (#\q . (:trigger :release q))
 	       (#\T . (:class/loc blocked-wall-square))
 	       (#\/ . (:invisible-blocker))
 	       (#\? . (:class/loc button-intro-level/hard/destroy)))))

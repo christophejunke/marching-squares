@@ -181,7 +181,10 @@
 (defclass invisible-blocker (has-location
                              immaterial
                              invisible)
-  ())
+  ((allow-direction
+    :initform nil
+    :initarg :allow-direction
+    :reader allow-direction)))
 
 (defmethod build ((f function) context)
   (build (funcall f) context))
@@ -224,6 +227,8 @@
        (apply #'make-door name :location location :pressp nil options))
       ((list :door name) (make-door name :location location :pressp t))
       ((list :blocked-square name) (new 'square :name name :blockedp t))
+      ((list :invisible-blocker direction) (new 'invisible-blocker
+                                                :allow-direction direction))
       ((list :invisible-blocker) (new 'invisible-blocker))
       ((or (list :trigger :invert)
 	   :invert)
@@ -669,11 +674,13 @@
 (defun csq (size)
   (gl:rect (- size) (- size) size size))
 
-(defmethod display ((trigger inverter))
-  (color '(:alpha 0.7 :square))
-  (csq 0.4)
-  (color '(:alpha 0.8 :WALL))
-  (csq 0.2))
+(defmethod display ((trigger inverter) &aux (angle (angle trigger)))
+  (let ((distance (+ 1/8 (* 3/4 (/ (abs (- 90 (mod angle 180))) 90)))))
+    (color `(:alpha ,distance :square))
+    (csq 0.4)
+    (unless (< 90 angle 270)
+      (color `(:alpha ,distance :WALL))
+      (csq 0.2))))
 
 (defgeneric propagate-inputs (item))
 
