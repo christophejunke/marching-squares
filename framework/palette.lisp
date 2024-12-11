@@ -12,6 +12,7 @@
     (:win/flash 1 1 1 1)
     (:flash/feedback 1 1 1 1)
     (:inverted-square 0 0 0 1)
+    (:inverted-square . :wall)
     (:low-contrast 1 1 1 0.5)
     (:blocked-square . :low-contrast)
     (:foreground 1.0 1.0 1.0 0.7)

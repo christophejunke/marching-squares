@@ -679,7 +679,7 @@
     (color `(:alpha ,distance :square))
     (csq 0.4)
     (unless (< 90 angle 270)
-      (color `(:alpha ,distance :WALL))
+      (color `(:alpha ,distance :inverted-square))
       (csq 0.2))))
 
 (defgeneric propagate-inputs (item))

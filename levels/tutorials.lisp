@@ -93,7 +93,7 @@
    :grid #("######V#V#############"
            "##                 ###"
            "##                 ###"
-           "##VVVV V VVVVVVV   ###"
+           "##  VV V VVVVV     ###"
            "#################  ###"
            "##                 ###"
            "##                 ###"
@@ -104,7 +104,7 @@
            "##           #########"
            "##           #########"
            "##           #########"
-           "##      #### #########"
+           "##  ######## #########"
            "############ #########"
            "##                 ###"
            "##                 ###"
@@ -330,36 +330,69 @@
    :palettes '((:default . ((:wall 0.1 0 0 1)
                             (:background 0.7 0.2 0.2 1)
                             (:help .5 1.0 0.0 1.0)))
+               ((:releaser-for s0) (:foreground 0 0 0 1))
+               (s0 . ((:square 0.2 0.2 0.2 1)
+                      (:blocked-square 0.1 0.1 0.1 1)))
                (door-1 . ((:foreground 0.8 0.4 0.4 1.0)
                           (:flash/feedback 1.0 0.3 0.3 1.0))))
-   :name "Mirrors"
+   :name "Mirror constraints"
    :dimensions 13
    :grid #("######VW#####"
-           "####        #"
-           "####        #"
-           "####8##### ##"
-           "#        #### "
-           "# 8      #####"
-           "# #-## #######"
-           "# #8##########   "
-           "# # #########"
            "#           #"
-           "#           "
-           "##=###-######"
-           "#!!!!!@!!!!!#"
+           "# V         #"
+           "# ##8########"
+           "###   #######"
+           "##     ######"
+           "##     ######"
+           "## ~~~ ######"
+           "###   #######"
+           "#### ########"
+           "##     ######"
+           "##     ######"
+           "######@######"
 
            )
    :on-start (lambda (level) (pick-palette level :default))
    :on-winning (next 'tut-chute)
+   :bindings '((#\@ . (:trigger :win))
+               (#\V . :start)
+               (#\W . (:start :inverted))
+               (#\8 . (:trigger :invert))
+               (#\~ . (:door d1)))))
+
+(defun tut-chute ()
+  (make-instance
+   'level-blueprint
+   :palettes '((:default . ((:wall 0.1 0 0 1)
+                            (:background 0.5 0.2 0.7 1)
+                            (:help .5 1.0 0.0 1.0))))
+   :name "Time"
+   :dimensions 13
+   :grid #("      V      "
+           "#           #"
+           "#########-###"
+           "           # "
+           "         b # "
+           "##B####### ##"
+           "#   ########## "
+           "#"
+           "#           #"
+           "#           #"
+           "# #         # "
+           "# #####=###=# "
+           "#######@###@##" )
+
+   :on-start (lambda (level) (pick-palette level :default))
+   :on-winning (next 'intro-level)
    :bindings '((#\X . (:trigger :lose))
                (#\@ . (:trigger :win))
                (#\V . :start)
-               (#\! . (:fake :win))
-               (#\W . (:start :inverted))
                (#\8 . (:trigger :invert))
+               (#\B . (:blocked-square s0))
+               (#\b . (:trigger :release s0))
                (#\M . (:help! "Doors of the same group open when all pressed"))
-	       (#\- . (:gate g1))
-               (#\= . (:button bg1 (:trigger g1))))))
+               (#\- . (:door door-1))
+	       (#\= . (:door door-2)))))
 
 (defun level/lateral-thinking ()
   (make-instance
