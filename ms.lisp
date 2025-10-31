@@ -306,8 +306,6 @@
   (:method-combination progn)
   (:method progn (_)))
 
-(trace game-cancel-command)
-
 (defun sdl2-break (&aux (all (bordeaux-threads:all-threads)))
   (bt:interrupt-thread (or (find "SDL2"
                                  all
@@ -570,6 +568,7 @@
 
 (defmethod game-command ((game marching-squares) (command symbol))
   (case command
+    (:win (win (game-level game)))
     (:break (call-next-method))
     (:restart-loop (restart-game-loop))
     ((:go-left :go-right :stop)
@@ -603,7 +602,8 @@
   (setf (keybind :scancode-j game) :go-right)
   (setf (keybind :scancode-escape game) :restart)
   (setf (keybind :scancode-f2 game) :restart-loop)
-  (setf (keybind :scancode-f3 game) :break))
+  (setf (keybind :scancode-f3 game) :break)
+  (setf (keybind :scancode-f4 game) :win))
 
 (defparameter *test-level* nil)
 

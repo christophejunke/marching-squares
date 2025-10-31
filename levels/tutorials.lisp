@@ -370,7 +370,7 @@
     (setf time (mod (+ time dt) max-time))
     (let* ((ratio (/ time max-time))
            (angle (lerp ratio 0 (* 2 pi)))
-           (wave (/ (+ 1 (sin (+ (random 0.2) angle))) 2)))
+           (wave (/ (+ 1 (sin (+ (random 0.1) angle))) 2)))
       (let ((*palette* (current-palette level)))
         (update-color *palette*
                       :background
