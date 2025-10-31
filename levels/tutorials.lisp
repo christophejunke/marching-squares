@@ -424,7 +424,7 @@
                              :cyclic t
                              :lerp (lambda (ratio)
                                      (let ((angle (lerp ratio 0 (* 2 pi))))
-                                       (/ (+ 1 (sin (+ (- (random 0.23) 0.7) angle))) 2)))
+                                       (/ (+ 1 (sin angle)) 2)))
                              :level level)
                        level)))
    :on-winning (next 'intro-level)
@@ -487,27 +487,15 @@
                (pick-palette level)
                (incorporate level
                             (build (list :class 'color-changer
-                                         :from :bg0
-                                         :to :bg1
                                          :seconds 5
-                                         :lerp (wave (lambda (v) (* v v)))
-                                         :level level
-                                         :cyclic t)
-                                   level))
-               
-               (incorporate level
-                            (build (list :class 'color-changer
-                                         :seconds 2
-                                         :target :wall
-                                         :from '(0 0 0 1)
-                                         :to '(0 0 0.2 .5)
+                                         :lerp (lambda (v) (* v v))
                                          :level level
                                          :cyclic nil)
                                    level)))
    
    :palettes `((t . ((:outside . :background)
                      (:blocked-square 0.3 1 0.3 0.5)
-                     (:bg0 0.2 0.6 0.4 1)
+                     (:bg0 0 0 0 1)
                      (:bg1 0.3 0.5 0.3 1)
                      (:foreground 0 1 0 1)
                      (:door 0 1 0 0.35)))
