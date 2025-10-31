@@ -96,8 +96,9 @@
      (colrect :square 0.10 0.10 0.9 0.9)
      (colrect :inverted-square 0.30 0.30 0.70 0.70))
     (t
-     (colrect :wall 0 0 1 1)
-     (colrect :square 0.1 0.1 0.9 0.9))))
+     (let* ((m 0.1) (c (- 1 m)))
+       (colrect :wall 0 0 1 1)
+       (colrect :square m m c c)))))
 
 ;; ;; debug
 ;; (defmethod display :after ((square square))

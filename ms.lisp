@@ -306,6 +306,8 @@
   (:method-combination progn)
   (:method progn (_)))
 
+(trace game-cancel-command)
+
 (defun sdl2-break (&aux (all (bordeaux-threads:all-threads)))
   (bt:interrupt-thread (or (find "SDL2"
                                  all
@@ -314,10 +316,10 @@
                            (error "Not found in ~s" all))
                        #'break))
 
-;; (defun mouse-command (mouse-button)
-;;   (case mouse-button
-;;     (#.sdl2-ffi:+sdl-button-left+  :go-left)
-;;     (#.sdl2-ffi:+sdl-button-right+ :go-right)))
+(defun mouse-command (mouse-button)
+  (case mouse-button
+    (#.sdl2-ffi:+sdl-button-left+  :go-left)
+    (#.sdl2-ffi:+sdl-button-right+ :go-right)))
 
 (defgeneric game-loop (game)
   (:method (game)
@@ -329,10 +331,16 @@
         (with-key-down-event (_ :keysym keysym :repeat repeat)
           (when (zerop repeat)
             (game-command game (command keysym))))
-        ;; (with-mouse-button-down-event (_ :button button)
-        ;;   (game-command game (mouse-command button)))
-        ;; (with-mouse-button-up-event (_ :button button)
-        ;;   (game-cancel-command game (mouse-command button)))
+        (with-mouse-button-up-event (_)
+          (game-command game :stop))
+        (with-mouse-motion-event (_ :xrel xrel)
+          (when (sdl2:mouse-state-p sdl2-ffi:+sdl-button-left+)
+            (cond
+              ((> xrel #1=2)
+               (game-command game :go-right))
+              ((< xrel (- #1#))
+               (game-command game :go-left))
+              (t (game-command game :stop)))))
         (with-window-event-resized (_ :width width :height height)
           (resize-game game width height))
         (:quit () (return))
@@ -406,7 +414,8 @@
 
 (defgeneric game-command (game command)
   (:method (game command) nil)
-  (:method (game (command function)) (funcall command)))
+  (:method (game (command function)) (funcall command))
+  (:method (game (_ (eql :break))) (break "entering debugger")))
 
 (defgeneric game-cancel-command (game command)
   (:method (game command))
@@ -468,6 +477,11 @@
   (command 0)
   ;; last "unpressed" direction in current step
   (stop 0))
+
+(defmethod game-command ((input square-input) (command (eql :stop)))
+  (setf (square-input-direction input) 0)
+  (setf (square-input-stop input) 0)
+  (setf (square-input-command input) 0))
 
 (defmethod game-command ((input square-input) (command (eql :go-left)))
   (setf (square-input-direction input) -1)
@@ -556,8 +570,9 @@
 
 (defmethod game-command ((game marching-squares) (command symbol))
   (case command
+    (:break (call-next-method))
     (:restart-loop (restart-game-loop))
-    ((:go-left :go-right)
+    ((:go-left :go-right :stop)
      (game-command (input-state game) command))
     (:restart (restart-game-loop))
     (:restart-graphics (signal 'restart-window))))
@@ -565,6 +580,9 @@
 (defmethod game-cancel-command ((game marching-squares)
                                 (command symbol))
   (case command
+    (:all
+     (game-cancel-command (input-state game) :go-left)
+     (game-cancel-command (input-state game) :go-right))
     ((:go-left :go-right)
      (game-cancel-command (input-state game) command))))
 
@@ -745,12 +763,15 @@
 
 (defparameter *game* nil)
 
-(defun start (&optional (level 'tut-0))
-  (setf *game*
-        (make-instance 'marching-squares::marching-squares
+(defun start (&key (background t) (level 'tut-0))
+  (let ((game (make-instance 'marching-squares::marching-squares
                        :microsteps 11
                        :microsteps-duration 0.1
                        :sleep-delay 0.21
-                       :level-blueprint level))
-  (start-game *game*))
+                       :level-blueprint level)))
+    (setf *game* game)
+    (flet ((run () (start-game game)))
+      (if background
+          (bt:make-thread #'run)
+          (run)))))
 
