@@ -84,6 +84,11 @@
 ;; (let ((*palette* (palette nil)))
 ;;   (eval-color '(:blend 1/2 :wall :inverted-square)))
 
+(defgeneric update-color (object identifier new-value)
+  (:method (object (identifier symbol) new-value)
+    (setf (cdr (assoc identifier (palette object)))
+          new-value)))
+
 (defgeneric get-color (object identifier)
   (:method (object (identifier symbol))
     (eval-color

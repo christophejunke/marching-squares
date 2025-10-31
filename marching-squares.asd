@@ -35,6 +35,7 @@
                              (:file "release")
                              (:file "buttons")
                              (:file "keymaps")
+                             (:file "microsteppers")
                              (:file "games")))
 
                (:module "entities"

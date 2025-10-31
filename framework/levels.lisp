@@ -116,7 +116,7 @@
 (defmethod extract-from progn ((level level) item)
   (extract-from (game level) item))
 
-(defmethod microstep ((level level) ratio)
+(defmethod microstep :before ((level level) ratio)
   (let ((array (level-array level)))
     (dotimes (i (array-total-size array))
       (let ((value (row-major-aref array i)))

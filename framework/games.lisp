@@ -4,6 +4,7 @@
                 move-arbiter
                 has-active-objects
                 has-triggers
+                has-microsteppers
                 has-keymap
                 namespace
                 has-dimensions)
@@ -40,5 +41,6 @@
     (restart-game-loop)))
 
 (defmethod microstep ((game game) ratio)
+  (call-next-method)
   (microstep (game-level game) ratio))
 

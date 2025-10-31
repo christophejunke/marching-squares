@@ -290,7 +290,7 @@
   (make-instance
    'level-blueprint
    :palettes '((:default . ((:wall 0.1 0 0 1)
-                            (:background 0.7 0.2 0.2 1)
+                            (:background 0.5 0.2 0.2 1)
                             (:help .5 1.0 0.0 1.0)))
                (door-1 . ((:foreground 0.8 0.4 0.4 1.0)
                           (:flash/feedback 1.0 0.3 0.3 1.0))))
@@ -360,11 +360,30 @@
                (#\8 . (:trigger :invert))
                (#\~ . (:door d1)))))
 
+(defclass bg-changer (global-microstepper has-absolute-microstep)
+  ((level :initarg :level)
+   (time :initform 0)
+   (max-time :initform (* internal-time-units-per-second 11))))
+
+(defmethod delta-microstep ((o bg-changer) dt)
+  (with-slots (time level max-time) o
+    (setf time (mod (+ time dt) max-time))
+    (let* ((ratio (/ time max-time))
+           (angle (lerp ratio 0 (* 2 pi)))
+           (wave (/ (+ 1 (sin (+ (random 0.2) angle))) 2)))
+      (let ((*palette* (current-palette level)))
+        (update-color *palette*
+                      :background
+                      (eval-color
+                       `(:blend ,wave :bg0 :bg1)))))))
+
 (defun tut-chute ()
   (make-instance
    'level-blueprint
    :palettes '((:default . ((:wall 0.1 0 0 1)
-                            (:background 0.5 0.2 0.7 1)
+                            (:bg0 0.2 0.1 0.3 1)
+                            (:bg1 0.4 0.2 0.6 1)
+                            (:background 0.4 0.2 0.6 1)
                             (:help .5 1.0 0.0 1.0))))
    :name "Time"
    :dimensions 13
@@ -382,7 +401,11 @@
            "# #####=###=# "
            "#######@###@##" )
 
-   :on-start (lambda (level) (pick-palette level :default))
+   :on-start (lambda (level)
+               (pick-palette level :default)
+               (incorporate
+                level
+                (build (list :class 'bg-changer :level level) level)))
    :on-winning (next 'intro-level)
    :bindings '((#\X . (:trigger :lose))
                (#\@ . (:trigger :win))
