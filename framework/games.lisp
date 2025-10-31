@@ -4,7 +4,6 @@
                 move-arbiter
                 has-active-objects
                 has-triggers
-                has-microsteppers
                 has-keymap
                 namespace
                 has-dimensions)

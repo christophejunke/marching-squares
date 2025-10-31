@@ -145,7 +145,7 @@
            "####   ## ###"
            "#### E ## ###"
            "#########@###"
-)
+           )
    :on-start (lambda (level) (pick-palette level :default))
    :on-winning (next 'tut-doors)
    :bindings '((#\X . (:trigger :lose))
@@ -328,7 +328,7 @@
   (make-instance
    'level-blueprint
    :palettes '((:default . ((:wall 0.1 0 0 1)
-                            (:background 0.7 0.2 0.2 1)
+                            (:background 0.5 0.2 0.2 1)
                             (:help .5 1.0 0.0 1.0)))
                ((:releaser-for s0) (:foreground 0 0 0 1))
                (s0 . ((:square 0.2 0.2 0.2 1)
@@ -360,22 +360,37 @@
                (#\8 . (:trigger :invert))
                (#\~ . (:door d1)))))
 
-(defclass bg-changer (global-microstepper has-absolute-microstep)
+(defclass color-changer (global-microstepper has-absolute-microstep)
   ((level :initarg :level)
+   (cyclic :initarg :cyclic)
    (time :initform 0)
+   (from :initform :bg0 :initarg :from)
+   (to :initform :bg1 :initarg :to)
+   (target :initform :background :initarg :target)
+   (lerp :initarg :lerp :initform 'identity)
    (max-time :initform (* internal-time-units-per-second 11))))
 
-(defmethod delta-microstep ((o bg-changer) dt)
-  (with-slots (time level max-time) o
-    (setf time (mod (+ time dt) max-time))
-    (let* ((ratio (/ time max-time))
-           (angle (lerp ratio 0 (* 2 pi)))
-           (wave (/ (+ 1 (sin (+ (random 0.1) angle))) 2)))
-      (let ((*palette* (current-palette level)))
-        (update-color *palette*
-                      :background
-                      (eval-color
-                       `(:blend ,wave :bg0 :bg1)))))))
+(defmethod initialize-instance :after ((o color-changer) &key seconds &allow-other-keys)
+  (when seconds
+    (with-slots (max-time) o
+      (setf max-time
+            (* internal-time-units-per-second seconds)))))
+
+(defmethod delta-microstep ((o color-changer) dt)
+  (with-slots (time level max-time cyclic lerp target from to) o
+    (let ((new-time (+ time dt)))
+      (when (> new-time max-time)
+        (unless cyclic
+          (extract-from level o)
+          (return-from delta-microstep)))
+      (setf time (mod new-time max-time))
+      (let ((ratio (funcall lerp (/ time max-time)))
+            (*palette* (current-palette level)))
+        (update-color
+         *palette*
+         target
+         (eval-color
+          `(:blend ,ratio ,to ,from)))))))
 
 (defun tut-chute ()
   (make-instance
@@ -405,7 +420,13 @@
                (pick-palette level :default)
                (incorporate
                 level
-                (build (list :class 'bg-changer :level level) level)))
+                (build (list :class 'color-changer
+                             :cyclic t
+                             :lerp (lambda (ratio)
+                                     (let ((angle (lerp ratio 0 (* 2 pi))))
+                                       (/ (+ 1 (sin (+ (- (random 0.23) 0.7) angle))) 2)))
+                             :level level)
+                       level)))
    :on-winning (next 'intro-level)
    :bindings '((#\X . (:trigger :lose))
                (#\@ . (:trigger :win))
@@ -416,6 +437,12 @@
                (#\M . (:help! "Doors of the same group open when all pressed"))
                (#\- . (:door door-1))
 	       (#\= . (:door door-2)))))
+
+(defun wave-ratio (ratio)
+  (/ (1+ (sin (* ratio #.(* 2 pi)) )) 2))
+
+(defun wave (fn)
+  (lambda (r) (funcall fn (wave-ratio r))))
 
 (defun level/lateral-thinking ()
   (make-instance
@@ -456,11 +483,32 @@
            "         ##    #    ##           "
            "         ##    #    ##           "
            "                                 ")
-   :on-start #'pick-palette
-   :palettes `((t . ((:wall 0 0 0.2 .5)
-                     (:outside . :background)
+   :on-start (lambda (level)
+               (pick-palette level)
+               (incorporate level
+                            (build (list :class 'color-changer
+                                         :from :bg0
+                                         :to :bg1
+                                         :seconds 5
+                                         :lerp (wave (lambda (v) (* v v)))
+                                         :level level
+                                         :cyclic t)
+                                   level))
+               
+               (incorporate level
+                            (build (list :class 'color-changer
+                                         :seconds 2
+                                         :target :wall
+                                         :from '(0 0 0 1)
+                                         :to '(0 0 0.2 .5)
+                                         :level level
+                                         :cyclic nil)
+                                   level)))
+   
+   :palettes `((t . ((:outside . :background)
                      (:blocked-square 0.3 1 0.3 0.5)
-                     (:background 0.3 0.5 0.3 1)
+                     (:bg0 0.2 0.6 0.4 1)
+                     (:bg1 0.3 0.5 0.3 1)
                      (:foreground 0 1 0 1)
                      (:door 0 1 0 0.35)))
                (door-2 . ((:foreground 0.2 0.6 0.2 1.0)

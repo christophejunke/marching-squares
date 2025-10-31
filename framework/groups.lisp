@@ -36,7 +36,7 @@
       (vector-push-extend object vec)))
 
 (defun group-remove (object group &aux (vec (items group)))
-  (setf (items% group) (remove object vec)))
+  (setf (items% group) (delete object vec)))
 
 (defun group-clear (group)
   (setf (items% group) (make-group-vector% nil)))

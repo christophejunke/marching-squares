@@ -2,6 +2,7 @@
 
 (defclass level (namespace
                  has-dimensions
+                 has-microsteppers
                  has-name
                  has-location-cache
                  has-palettes
