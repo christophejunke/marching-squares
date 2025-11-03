@@ -763,7 +763,7 @@
 
 (defparameter *game* nil)
 
-(defun start (&key (background t) (level 'tut-0))
+(defun start (&key (background nil) (level 'tut-0))
   (let ((game (make-instance 'marching-squares::marching-squares
                        :microsteps 11
                        :microsteps-duration 0.1

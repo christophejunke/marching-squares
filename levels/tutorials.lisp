@@ -495,6 +495,7 @@
    
    :palettes `((t . ((:outside . :background)
                      (:blocked-square 0.3 1 0.3 0.5)
+                     (:background . :bg0)
                      (:bg0 0 0 0 1)
                      (:bg1 0.3 0.5 0.3 1)
                      (:foreground 0 1 0 1)

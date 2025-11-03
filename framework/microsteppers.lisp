@@ -16,10 +16,9 @@
 (defmethod extract-from progn
     ((root has-microsteppers)
      (o global-microstepper))
-  (warn "EXTRACT")
   (group-remove o (microsteppers root)))
 
 (defmethod microstep ((o has-microsteppers) ratio)
-  (call-next-method)
   (dogroup (s (microsteppers o))
-    (microstep s ratio)))
+    (microstep s ratio))
+  (call-next-method))

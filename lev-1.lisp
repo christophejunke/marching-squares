@@ -114,8 +114,6 @@
   (print-unreadable-object (o stream :type t :identity t)
     (format stream "direction:~a" (allow-direction o))))
 
-*game*
-
 (defmethod compute-next-move ((square wall-square))
   ;; more like an UPDATE thing
   (setf (direction square)

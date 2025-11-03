@@ -49,7 +49,7 @@
 (defun pick-palette (object &optional (identifier t))
   (let ((entry (assoc identifier (palettes object))))
     (if entry
-        (setf (current-palette object) (copy-list (cdr entry)))
+        (setf (current-palette object) (copy-tree (cdr entry)))
         (warn "Unknown palette ~s in ~a" identifier object))))
 
 ;; (let ((object (make-instance 'has-palettes
