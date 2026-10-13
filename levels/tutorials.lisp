@@ -370,11 +370,22 @@
    (lerp :initarg :lerp :initform 'identity)
    (max-time :initform (* internal-time-units-per-second 11))))
 
+(defclass color-changer-immediate (color-changer) ())
+
 (defmethod initialize-instance :after ((o color-changer) &key seconds &allow-other-keys)
-  (when seconds
-    (with-slots (max-time) o
-      (setf max-time
-            (* internal-time-units-per-second seconds)))))
+  (if seconds
+      (with-slots (max-time) o
+        (setf max-time
+              (if seconds
+                  (* internal-time-units-per-second seconds)
+                  0)))
+      (change-class o 'color-changer-immediate)))
+
+(defmethod delta-microstep ((o color-changer-immediate) dt)
+  (with-slots (level target to) o
+    (let ((*palette* (current-palette level)))
+      (update-color *palette* target (eval-color to))
+      (extract-from level o))))
 
 (defmethod delta-microstep ((o color-changer) dt)
   (with-slots (time level max-time cyclic lerp target from to) o
@@ -487,13 +498,14 @@
                (pick-palette level)
                (incorporate level
                             (build (list :class 'color-changer
-                                         :seconds 5
+                                         :seconds (if *first-level-attempt* 4 nil)
                                          :lerp (lambda (v) (* v v))
                                          :level level
                                          :cyclic nil)
                                    level)))
    
    :palettes `((t . ((:outside . :background)
+                     (:wall 0 0 0.2 .5)
                      (:blocked-square 0.3 1 0.3 0.5)
                      (:background . :bg0)
                      (:bg0 0 0 0 1)

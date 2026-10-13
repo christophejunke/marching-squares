@@ -767,8 +767,8 @@
   (let ((game (make-instance 'marching-squares::marching-squares
                        :microsteps 11
                        :microsteps-duration 0.1
-                       :sleep-delay 0.21
-                       :level-blueprint level)))
+                       :sleep-delay 0.21)))
+    (setf (level-blueprint game) level)
     (setf *game* game)
     (flet ((run () (start-game game)))
       (if background

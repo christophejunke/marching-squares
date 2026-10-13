@@ -11,7 +11,10 @@
           :accessor title
           :initarg :title)
    (level :initform nil :accessor game-level)
-   (level-blueprint :initarg :level-blueprint :accessor level-blueprint)
+   (level-blueprint :initarg :level-blueprint
+                    :accessor level-blueprint
+                    :initform nil)
+   (blueprint-changed :accessor blueprint-changed :initform nil)
    (sleep-delay :initarg :sleep-delay
                 :accessor sleep-delay
                 :initform 0.1)
@@ -22,7 +25,9 @@
                         :accessor microsteps-duration
                         :initform 0.10)))
 
-(defgeneric restart-level (level))
+(defmethod (setf level-blueprint) :before (new (g game))
+  (setf (blueprint-changed g)
+        (not (equalp new (level-blueprint g)))))
 
 (defgeneric loose (level)
   (:method (_) (restart-game-loop)))

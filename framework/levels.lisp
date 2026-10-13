@@ -15,6 +15,8 @@
   '((#\space . nil)
     (#\# . :wall)))
 
+(defvar *first-level-attempt* nil)
+
 (loop for (symbols dx dy) in '(((:northwest :nw) -1 -1)
                                ((:north     :n)   0 -1)
                                ((:northeast :ne) +1 -1)
@@ -99,7 +101,9 @@
                                    (aref (aref rows row) col))
                                   location)))))
 	(when-let ((hook (start-hook blueprint)))
-          (funcall hook level))
+          (let ((*first-level-attempt* (blueprint-changed game)))
+            (funcall hook level))
+          (setf (blueprint-changed *game*) nil))
         (set-title (format nil "~a" (or (name level)
                                         (title game))))))))
 
